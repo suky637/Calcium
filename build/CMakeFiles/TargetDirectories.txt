@@ -1,6 +1,0 @@
-/home/suky/dev/Calcium/build/CMakeFiles/Calcium.dir
-/home/suky/dev/Calcium/build/CMakeFiles/edit_cache.dir
-/home/suky/dev/Calcium/build/CMakeFiles/rebuild_cache.dir
-/home/suky/dev/Calcium/build/compiler/CMakeFiles/compiler.dir
-/home/suky/dev/Calcium/build/compiler/CMakeFiles/edit_cache.dir
-/home/suky/dev/Calcium/build/compiler/CMakeFiles/rebuild_cache.dir
