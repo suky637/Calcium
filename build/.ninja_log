@@ -1,0 +1,14 @@
+# ninja log v5
+4	1689	1715466416859553667	lexer/CMakeFiles/lexer.dir/src/lexer.cpp.o	70852a6b89f6dbb4
+464	484	1715460658849173695	compiler_settings/libcompiler_settings.a	f76b5f37bca7d335
+4	1535	1715466416705553042	CMakeFiles/Calcium.dir/src/main.cpp.o	d7db36e70eb31a2e
+3	40	1715465494848810613	lexer/liblexer.a	ed7662c3e0e059cd
+998	1137	1715465618574312897	Calcium	1729ffd10d522911
+4	464	1715460658830173605	compiler_settings/CMakeFiles/compiler_settings.dir/src/compiler_settings.cpp.o	2fcfe0174e66062b
+472	510	1715465617947310352	parser/libparser.a	feda869b7cdad47b
+4	471	1715465617909310197	parser/CMakeFiles/parser.dir/src/parser.cpp.o	cfdbabfa887ed2e
+4	1155	1715466537485890820	CMakeFiles/Calcium.dir/src/main.cpp.o	d0b5e0b4c5fe0c09
+4	1528	1715466537858890616	compiler/CMakeFiles/compiler.dir/src/lexer.cpp.o	f5c09872a95f9aa3
+3	1230	1715466548625884720	compiler/CMakeFiles/compiler.dir/src/parser.cpp.o	9fe03781719da3a
+1230	1258	1715466548654884704	compiler/libcompiler.a	841981815b7a97e9
+1259	1501	1715466548893884573	Calcium	3acb21da37612643

@@ -1,0 +1,20 @@
+[
+{
+  "directory": "/home/suky/dev/Calcium/build",
+  "command": "/usr/bin/g++ -I/home/suky/dev/Calcium/include -I/home/suky/dev/Calcium/compiler/include -g -std=gnu++17 -o CMakeFiles/Calcium.dir/src/main.cpp.o -c /home/suky/dev/Calcium/src/main.cpp",
+  "file": "/home/suky/dev/Calcium/src/main.cpp",
+  "output": "CMakeFiles/Calcium.dir/src/main.cpp.o"
+},
+{
+  "directory": "/home/suky/dev/Calcium/build",
+  "command": "/usr/bin/g++ -I/home/suky/dev/Calcium/compiler/include -g -std=gnu++17 -o compiler/CMakeFiles/compiler.dir/src/lexer.cpp.o -c /home/suky/dev/Calcium/compiler/src/lexer.cpp",
+  "file": "/home/suky/dev/Calcium/compiler/src/lexer.cpp",
+  "output": "compiler/CMakeFiles/compiler.dir/src/lexer.cpp.o"
+},
+{
+  "directory": "/home/suky/dev/Calcium/build",
+  "command": "/usr/bin/g++ -I/home/suky/dev/Calcium/compiler/include -g -std=gnu++17 -o compiler/CMakeFiles/compiler.dir/src/parser.cpp.o -c /home/suky/dev/Calcium/compiler/src/parser.cpp",
+  "file": "/home/suky/dev/Calcium/compiler/src/parser.cpp",
+  "output": "compiler/CMakeFiles/compiler.dir/src/parser.cpp.o"
+}
+]
