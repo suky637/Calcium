@@ -58,6 +58,13 @@ void Lexer::print_tokens()
     }
 }
 
+Lexer::~Lexer()
+{
+    tokens.clear();
+    delimiters.clear();
+    comp_tokens.clear();
+}
+
 void Lexer::token_type(char* token)
 {
 
@@ -70,6 +77,9 @@ void Lexer::token_type(char* token)
 
         Token _token {tokenType, token};
         tokens.push_back(_token);
+
+        //free(&tokenType);
+        //free(&_token);
     }
     else if (delimiters.count(token[0]) && sizeof(token) == 8)
     {
@@ -79,6 +89,9 @@ void Lexer::token_type(char* token)
         //std::cout << "type " << delimiterType << "   value " << token << "\n";
         Token _token {delimiterType, token};
         tokens.push_back(_token);
+
+        //free(&delimiterType);
+        //free(&_token);
     } 
     else
     {
@@ -87,11 +100,15 @@ void Lexer::token_type(char* token)
         {
             Token _token {"DIGITS", token};
             tokens.push_back(_token);
+
+            //free(&_token);
         }
         else
         {
             Token _token {"UNKNOWN", token};
             tokens.push_back(_token);
+
+            //free(&_token);
         }
     }
 }

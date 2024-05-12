@@ -1,6 +1,2 @@
-import stdio.h
-
-fn main()
-{
-    printf("Hello, World!")
-}
+x = 10
+local lock string y = "Hello World"

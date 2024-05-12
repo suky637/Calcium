@@ -14,6 +14,7 @@ class Lexer
 {
     public:
     Lexer();
+    ~Lexer();
     // Suky
     // Adding a keyword to the program
     void add_token(const char* type, const char* detected);

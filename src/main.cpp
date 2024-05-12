@@ -17,7 +17,7 @@ int main(int argc, char* argv[])
 {
     
     // Make code fast
-    std::ios::sync_with_stdio(false);
+    //std::ios::sync_with_stdio(false);
     if (argc != 2){
         std::cout << "Usage: " << argv[0] << " <filename>" << "\n";
         return 1;
@@ -55,6 +55,8 @@ int main(int argc, char* argv[])
     lexer.add_token("LOCK", "lock");
     lexer.add_token("INT", "int");
     lexer.add_token("STRING", "string");
+    lexer.add_token("CHAR", "char");
+    lexer.add_token("ANY", "any");
     lexer.add_token("RETURN", "return");
     lexer.add_token("BOOLEAN", "bool");
     lexer.add_token("FLOAT", "float");
@@ -89,12 +91,27 @@ int main(int argc, char* argv[])
         lexer.read_line((line + '\n').c_str());
     }
 
+    file.close();
+    //free(&file);
+    //free(&line);
+
     Parser parser{};
+
+    parser.add_to_blacklist("CONST");
+    parser.add_to_blacklist("LOCK");
+    parser.add_to_blacklist("FUNC");
+    parser.add_to_blacklist("FN");
+    parser.add_to_blacklist("LOCAL");
+    parser.add_to_blacklist("SPACE");
+    parser.add_to_blacklist("TAB");
+    parser.add_to_blacklist("COMMA");
+
     parser.compress(lexer.tokens);
     parser.parse();
+    //lexer.print_tokens();
 
 
-    lexer.print_tokens();
 
+    //free(&lexer);
     return 0;
 }
