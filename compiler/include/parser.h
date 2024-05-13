@@ -26,8 +26,8 @@
 
 struct CompressedTokens
 {
-    std::map<std::string, std::string> compressed;
-    std::string value;
+    std::map<std::string, std::string> value;
+    std::string type;
 };
 
 class Parser
@@ -37,7 +37,7 @@ class Parser
     void compress(std::vector<Token> tokens);
     void display_compressed();
     void add_to_blacklist(std::string token);
-    void parse();
+    std::string compile();
     private:
     std::vector<CompressedTokens> comp_tokens{};
     std::vector<std::string> blacklist{};

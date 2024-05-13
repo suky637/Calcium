@@ -85,7 +85,10 @@ void Lexer::token_type(char* token)
     {
         
         // Is a delimiter
+
         const char* delimiterType = delimiters.at(token[0]);
+        //if (token[0] == ' ')
+        //    std::cout << "Yay!\n";
         //std::cout << "type " << delimiterType << "   value " << token << "\n";
         Token _token {delimiterType, token};
         tokens.push_back(_token);
@@ -113,9 +116,11 @@ void Lexer::token_type(char* token)
     }
 }
 
+
 void Lexer::read_line(const char* line){
-    char token[50] = "";
+    char token[256] = "";
     int index = 0;
+    bool istring = false;
     bool comment = false;
     for(int i = 0; line[i] != '\0'; i++){
         if(Lexer::is_delimiter(line[i])){
@@ -123,18 +128,23 @@ void Lexer::read_line(const char* line){
                 if(token[0]!='\0'){
                     token[index] = '\0';
                     index = 0;
-                    Lexer::token_type(token);
+                    // if(line[i]!='"' && istring){
+                        Lexer::token_type(token);
+                    // }
                 }
                 token[0] = line[i];
                 token[1] = '\0';
-                if(line[i]!=' ')
+                if (line[i] != ' '){
                     Lexer::token_type(token);
+                }
                 token[0] = '\0';
                 if(line[i]=='#')
                     comment = true;
+                if(line[i]=='"')
+                    istring = !istring;
             }
         } else {
-            if(index<50)
+            if(index<256)
                 token[index++] = line[i];
         }
     } 

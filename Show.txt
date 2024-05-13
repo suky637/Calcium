@@ -1,0 +1,46 @@
+variable = "maria";
+# coment 
+varb = "John";
+
+
+7       COMMENT         #
+8       STR             varb
+9       EQ              =
+10      DQUOTE          "
+11      STR             john
+12      DQUOTE          "
+13      EOS             ;
+
+# how our compiler work
+
+functions
+whilest (there isn't a ')'):
+    add the arguments
+
+2       LPARENT
+LPARENT         (
+3       declaration
+INT             int
+LOCAL           local
+value           x
+4       declaration
+BOOLEAN         bool
+LOCAL           local
+value           y
+5       RPARENT
+RPARENT         )
+
+// this how rust works
+fn add(a: i32, b: i32) -> i32 {
+    a + b
+}
+
+// this how Calcium works
+[fn add]([local int a][local int b])
+    return a + b
+[End of function]
+
+FN + NAME + LPAREN + RPARENT
+
+0 include
+value stdio.h

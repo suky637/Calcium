@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
     lexer.add_delimiter("RPARENT", ')');
     lexer.add_delimiter("LCURLYBR", '{');
     lexer.add_delimiter("RCURLYBR", '}');
-    lexer.add_delimiter("QUOTE", '"');
+    //lexer.add_delimiter("QUOTE", '"');
     lexer.add_delimiter("SMOL_QUOTE", '\'');
     lexer.add_delimiter("LBRAQ", '[');
     lexer.add_delimiter("RBRAQ", ']');
@@ -92,8 +92,8 @@ int main(int argc, char* argv[])
     }
 
     file.close();
-    //free(&file);
-    //free(&line);
+
+    lexer.print_tokens();
 
     Parser parser{};
 
@@ -105,13 +105,27 @@ int main(int argc, char* argv[])
     parser.add_to_blacklist("SPACE");
     parser.add_to_blacklist("TAB");
     parser.add_to_blacklist("COMMA");
+    //parser.add_to_blacklist("QUOTE");
+
 
     parser.compress(lexer.tokens);
-    parser.parse();
-    //lexer.print_tokens();
+    //parser.display_compressed();
+    std::string res = parser.compile();
+
+     // Specify the file name
+               {
+
+            } std::string filename = "output.c";
+    std::ofstream outputFile(filename);
+
+    // Check if the file is opened successfully
+    if (outputFile.is_open()) {
+        outputFile << res;
+        outputFile.close();
+    } else {
+        std::cerr << "Unable to open file: " << filename << std::endl;
+    }
 
 
-
-    //free(&lexer);
     return 0;
 }

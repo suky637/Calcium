@@ -1,1 +1,3 @@
-build/
+build
+*.ninga_log
+*.ninga_deps
