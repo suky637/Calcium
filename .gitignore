@@ -1,4 +1,5 @@
 build
+.vscode
 *.ninga_log
 *.ninga_deps
 Show.txt
