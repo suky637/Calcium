@@ -131,6 +131,7 @@ void Parser::compress(std::vector<Token> tokens)
             compressed.value.insert_or_assign("value", buffer);
             comp_tokens.push_back(compressed);
         }
+        
         else if (std::string(tokens.at(i).type) == "UNKNOWN")
         {
 
@@ -315,6 +316,12 @@ std::string Parser::compile()
             {
                 // Variable ?
             }
+        }
+        else if (token.type  == "RETURN")
+        {
+            buffer += "return ";
+            buffer += comp_tokens.at(i+1).value.at("value");
+            buffer += ";";
         }
         else if (token.type == "funcCall")
         {
