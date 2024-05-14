@@ -27,12 +27,11 @@ const char* Lexer::lowerCase(const char* value)
     return buf.c_str();
 }
 
-bool Lexer::is_number(char* number)
+bool Lexer::is_number(std::string number)
 {
-    std::string buffer = number;
 
     bool correct = true;
-    for (char c : buffer)
+    for (char c : number)
     {
 
         if (!std::isdigit(c))
@@ -65,14 +64,20 @@ Lexer::~Lexer()
     comp_tokens.clear();
 }
 
-void Lexer::token_type(char* token)
+void Lexer::token_type(std::string token, int type)
 {
+    if (type == 1)
+    {
+        Token _token {"STRING", token};
+        tokens.push_back(_token);
+        return;
+    }
 
     if (comp_tokens.count(std::string(token)))
     {
         
         // keyword exist
-        const char* tokenType = comp_tokens.at(std::string(token));
+        const char* tokenType = comp_tokens.at(token);
         //std::cout << "type " << tokenType << "   value " << token << "\n";
 
         Token _token {tokenType, token};
@@ -81,10 +86,11 @@ void Lexer::token_type(char* token)
         //free(&tokenType);
         //free(&_token);
     }
-    else if (delimiters.count(token[0]) && sizeof(token) == 8)
+    else if (delimiters.count(token[0]) && token.size() == 1)
     {
         
         // Is a delimiter
+        std::cout << "TEST?\n";
 
         const char* delimiterType = delimiters.at(token[0]);
         //if (token[0] == ' ')
@@ -117,36 +123,83 @@ void Lexer::token_type(char* token)
 }
 
 
+int is_string = 0;
+int test = 1;
 void Lexer::read_line(const char* line){
-    char token[256] = "";
+    std::string token = "";
+    token.resize(1);
     int index = 0;
-    bool istring = false;
-    bool comment = false;
+    int comment = 0;
+    int instring = 0;
+    //std::cout << token.size() << "\n";
     for(int i = 0; line[i] != '\0'; i++){
-        if(Lexer::is_delimiter(line[i])){
+        std::cout << is_delimiter(line[i]) << '\n';
+        if(Lexer::is_delimiter(line[i]) && (!instring || (line[i]=='"' && instring)) || line[i]==';'){
             if(!comment){
                 if(token[0]!='\0'){
                     token[index] = '\0';
                     index = 0;
-                    // if(line[i]!='"' && istring){
+                    if(instring)
+                    {
+                        instring = 0;
+                        Lexer::token_type(token, 1);
+                    }
+                    else
                         Lexer::token_type(token);
-                    // }
-                }
+                } 
                 token[0] = line[i];
-                token[1] = '\0';
-                if (line[i] != ' '){
-                    Lexer::token_type(token);
-                }
-                token[0] = '\0';
+                token.resize(1);
+                if(line[i]!=' ')
+                    Lexer::token_type(token); 
+                token.clear();
+                token.resize(1);
                 if(line[i]=='#')
-                    comment = true;
-                if(line[i]=='"')
-                    istring = !istring;
+                    comment = 1;
+                if(line[i]=='"' && !instring)
+                    instring = 1;
             }
         } else {
-            if(index<256)
+            if(line[i]!='\t'){
+                if (index >= token.size()){
+                    token.resize(token.size()+1);
+                    //std::cout << token.size() << "\n";
+                }
                 token[index++] = line[i];
+            }
+
         }
-    } 
+    }    
 }
+// void Lexer::read_line(const char* line){
+//     char token[256] = "";
+//     int index = 0;
+//     bool istring = false;
+//     bool comment = false;
+//     for(int i = 0; line[i] != '\0'; i++){
+//         if(Lexer::is_delimiter(line[i])){
+//             if(!comment){
+//                 if(token[0]!='\0'){
+//                     token[index] = '\0';
+//                     index = 0;
+//                     // if(line[i]!='"' && istring){
+//                         Lexer::token_type(token);
+//                     // }
+//                 }
+//                 token[0] = line[i];
+//                 token[1] = '\0';
+//                 if (line[i] != ' '){
+//                     Lexer::token_type(token);
+//                 }
+//                 token[0] = '\0';
+//                 if(line[i]=='#')
+//                     comment = true;
+//                 if(line[i]=='"')
+//                     istring = !istring;
+//             }
+//         } else {
+//             if(index<256)
+//                 token[index++] = line[i];
+//         }
+//     } 
+// }
 

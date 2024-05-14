@@ -27,9 +27,9 @@ class Lexer
     // Lower case the desired C string
     const char* lowerCase(const char* value);
 
-    bool is_number(char* number);
+    bool is_number(std::string number);
 
-    void token_type(char* token);
+    void token_type(std::string token, int type = 0);
 
     void print_tokens();
 

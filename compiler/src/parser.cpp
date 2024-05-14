@@ -67,7 +67,7 @@ void Parser::compress(std::vector<Token> tokens)
             line++;
         }
 
-        if (std::string(tokens.at(i).type) == "QUOTE")
+        /*if (std::string(tokens.at(i).type) == "QUOTE")
         {
             
             int j = i+1;
@@ -91,7 +91,7 @@ void Parser::compress(std::vector<Token> tokens)
             compressed.type = "string";
             compressed.value.insert_or_assign("value", buffer);
             comp_tokens.push_back(compressed);
-        }
+        }*/
 
         if (std::string(tokens.at(i).type) == "MINUS")
         {
