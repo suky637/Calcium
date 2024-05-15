@@ -53,7 +53,7 @@ void Lexer::print_tokens()
 {
     for (auto token : tokens)
     {
-        std::cout << "type " << token.type << "   value " << token.value << "\n";
+        std::cout << "type " << token.type << "   value #" << token.value << "#\n";
     }
 }
 
@@ -90,7 +90,7 @@ void Lexer::token_type(std::string token, int type)
     {
         
         // Is a delimiter
-        std::cout << "TEST?\n";
+        //std::cout << "TEST?\n";
 
         const char* delimiterType = delimiters.at(token[0]);
         //if (token[0] == ' ')
@@ -127,22 +127,24 @@ int is_string = 0;
 int test = 1;
 void Lexer::read_line(const char* line){
     std::string token = "";
+    static std::string currentString = "";
+    static bool instring = false;
     token.resize(1);
     int index = 0;
     int comment = 0;
-    int instring = 0;
     //std::cout << token.size() << "\n";
     for(int i = 0; line[i] != '\0'; i++){
-        std::cout << is_delimiter(line[i]) << '\n';
+        //std::cout << is_delimiter(line[i]) << '\n';
+        
         if(Lexer::is_delimiter(line[i]) && (!instring || (line[i]=='"' && instring)) || line[i]==';'){
             if(!comment){
                 if(token[0]!='\0'){
                     token[index] = '\0';
                     index = 0;
-                    if(instring)
+                    if(line[i] == '"')
                     {
-                        instring = 0;
                         Lexer::token_type(token, 1);
+                        instring = false;
                     }
                     else
                         Lexer::token_type(token);
@@ -151,12 +153,12 @@ void Lexer::read_line(const char* line){
                 token.resize(1);
                 if(line[i]!=' ')
                     Lexer::token_type(token); 
-                token.clear();
                 token.resize(1);
+                token.clear();
                 if(line[i]=='#')
                     comment = 1;
                 if(line[i]=='"' && !instring)
-                    instring = 1;
+                    instring = true;
             }
         } else {
             if(line[i]!='\t'){
@@ -164,6 +166,7 @@ void Lexer::read_line(const char* line){
                     token.resize(token.size()+1);
                     //std::cout << token.size() << "\n";
                 }
+                
                 token[index++] = line[i];
             }
 

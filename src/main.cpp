@@ -48,6 +48,7 @@ int main(int argc, char* argv[])
     lexer.add_delimiter("SMOL_QUOTE", '\'');
     lexer.add_delimiter("LBRAQ", '[');
     lexer.add_delimiter("RBRAQ", ']');
+    lexer.add_delimiter("QUOTE", '"');
 
     // reserved words
     lexer.add_token("CONST", "const");
@@ -89,9 +90,9 @@ int main(int argc, char* argv[])
 
     file.close();
 
-    lexer.print_tokens();
+    //lexer.print_tokens();
     
-    Parser parser{};
+    Parser parser{lexer.tokens};
 
     parser.add_to_blacklist("CONST");
     parser.add_to_blacklist("LOCK");
@@ -103,12 +104,45 @@ int main(int argc, char* argv[])
     parser.add_to_blacklist("COMMA");
 
     
-    parser.compress(lexer.tokens);
+    //parser.compress(lexer.tokens);
 
-    std::string res = parser.compile();
+    while (!parser.end())
+    {
+        parser.advance();
+        if (parser.get().type == "IMPORT")
+        {
+
+        }
+        else if (parser.get().type == "UNKNOWN")
+        {
+            int ind = -1;
+            parser.pushType("Declaration");
+            parser.pushValue("value", parser.get().value);
+            while (true)
+            {
+                if (parser.get(ind).type == "EOL")
+                    break;
+                if (parser.get(ind).type == "Error")
+                    break;
+                if (parser.get(ind).type == "SEMI-COLON")
+                    break;
+                if (parser.get(ind).type == "LPARENT")
+                    break;
+                if (parser.get(ind).type == "COMMA")
+                    break;
+                parser.pushValue(parser.get(ind).type, parser.get(ind).value);
+                ind--;
+            }
+            parser.storeToken();
+            parser.clearToken();
+            std::cout << "***\n";
+        }
+    }
+    parser.display_compressed();
+    //std::string res = parser.compile();
 
     // Specify the file name
-    std::string filename = "output.c";
+    /*std::string filename = "output.c";
     std::ofstream outputFile(filename);
 
     // Check if the file is opened successfully
@@ -117,7 +151,7 @@ int main(int argc, char* argv[])
         outputFile.close();
     } else {
         std::cerr << "Unable to open file: " << filename << std::endl;
-    }
+    }*/
 
     
     return 0;

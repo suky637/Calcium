@@ -42,6 +42,60 @@
         
     }
 */
+Parser::Parser(std::vector<Token> tokens)
+{
+    this->tokens = tokens;
+}
+
+bool Parser::end()
+{
+    return tokens.size() - 1 <= index;
+}
+
+void Parser::advance(int a)
+{
+    index += a;
+}
+
+Token Parser::get(int a)
+{
+    if (index + a < 0 && index + a > tokens.size()-1)
+        return {"Error", "Error"};
+    return tokens.at(index + a);
+}
+
+void Parser::storeToken(std::string type, std::map<std::string, std::string> value)
+{
+    CompressedTokens tok{};
+    tok.type = type;
+    tok.value = value;
+    comp_tokens.push_back(tok);
+}
+
+void Parser::storeToken(CompressedTokens token)
+{
+    comp_tokens.push_back(token);
+}
+
+void Parser::pushType(std::string type)
+{
+    current.type = type;
+}
+
+void Parser::pushValue(std::string key, std::string value)
+{
+    current.value.insert_or_assign(key, value);
+}
+
+void Parser::clearToken()
+{
+    current = CompressedTokens();
+}
+
+void Parser::storeToken()
+{
+    comp_tokens.push_back(current);
+}
 
 void Parser::compress(std::vector<Token> tokens)
 {

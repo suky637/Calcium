@@ -6,7 +6,7 @@
 
 struct Token
 {
-    const char* type;
+    std::string type;
     std::string value;
 };
 
