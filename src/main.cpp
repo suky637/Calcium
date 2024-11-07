@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
     lexer.add_token("OR", "or");
     lexer.add_token("DATA", "data");
     lexer.add_token("NAMESPACE", "namespace");
-
+    lexer.add_token("ENDNAMESPACE", "endnamespace");
     /////////////////////////////////////////////////////////////////////
     // PROCESSING THE LANGUAGE
     /////////////////////////////////////////////////////////////////////
@@ -109,6 +109,8 @@ int main(int argc, char* argv[])
     
     //parser.compress(lexer.tokens);
 
+    std::string currentNamespace = "";
+
     while (!parser.end())
     {
         
@@ -119,6 +121,15 @@ int main(int argc, char* argv[])
             parser.advance();
             parser.storeToken();
             parser.clearToken();
+        }
+        else if (parser.get().type == "NAMESPACE")
+        {
+            currentNamespace = parser.get(1).value + "__";
+            parser.advance();
+        }
+        else if (parser.get().type == "ENDNAMESPACE")
+        {
+            currentNamespace = "";
         }
         else if (parser.get().type == "UNKNOWN")
         {
@@ -162,7 +173,7 @@ int main(int argc, char* argv[])
                 if (parser.get(-1).type == "FUNCTION")
                 {
                     parser.pushType("Function");
-                    parser.pushValue("value", parser.get().value);
+                    parser.pushValue("value", currentNamespace + parser.get().value);
                     parser.storeToken();
                     parser.clearToken();
                 }
@@ -256,6 +267,8 @@ int main(int argc, char* argv[])
                         str += "*";
                     else if (parser.get().type == "REFERENCE")
                         str += "&";
+                    else if (parser.get().type == "PERIOD" && parser.get(-1).type == "UNKNOWN" && parser.get(1).type == "UNKNOWN")
+                        str += "__";
                     else
                         str += parser.get().value;
                     parser.advance();
@@ -307,6 +320,12 @@ int main(int argc, char* argv[])
             parser.storeToken();
             parser.clearToken();
         }
+        else if (parser.get().type == "PERIOD")
+        {
+            parser.pushType("PRERIOD");
+            parser.storeToken();
+            parser.clearToken();
+        }
         parser.advance();
     }
 
@@ -345,7 +364,7 @@ int main(int argc, char* argv[])
             {
                 buf += ", ";
             }
-            else if (parser.comp_tokens.at(x+1).type == "Declaration" || parser.comp_tokens.at(x+1).type == "OPEN")
+            else if (parser.comp_tokens.at(x+1).type == "Declaration" || parser.comp_tokens.at(x+1).type == "CLOSE")
             {
                 buf += ";\n";
             }
