@@ -123,7 +123,94 @@ void Lexer::token_type(std::string token, int type)
 }
 
 
-int is_string = 0;
+void Lexer::read_line(const char* line)
+{
+    std::string token = "";
+    static std::string currentString = "";
+    static bool instring = false;
+    static bool comment = false;
+    for (auto c : std::string(line))
+    {
+        token += c;
+        if (!instring && c == '#')
+        {
+            Token _token{};
+            _token.type = delimiters.at('\n');
+            _token.value = '\n';
+            tokens.push_back(_token);
+            break;
+        }
+        if (Lexer::is_delimiter(c))
+        {
+            if (c == '"')
+            {
+                instring = !instring;
+                token = "";
+                if (instring == false)
+                {
+                    Token _token{};
+                    _token.type = "STR";
+                    _token.value = currentString;
+                    tokens.push_back(_token);
+                    currentString = "";
+                }
+            }
+            else
+            {
+                if (comp_tokens.count(token.substr(0, token.size()-1)))
+                {
+                    Token _token{};
+                    _token.type = comp_tokens.at(token.substr(0, token.size()-1));
+                    _token.value = token.substr(0, token.size()-1);
+                    tokens.push_back(_token);
+                    token = "";
+                }
+                else 
+                {
+                    if (token.substr(0, token.size()-1) != "")
+                    {
+                        if (is_number(token.substr(0, token.size()-1)))
+                        {
+                            Token _token{};
+                            _token.type = "DIGIT";
+                            _token.value = token.substr(0, token.size()-1);
+                            tokens.push_back(_token);
+                            token = "";
+
+                        }
+                        else
+                        {
+                            Token _token{};
+                            _token.type = "UNKNOWN";
+                            _token.value = token.substr(0, token.size()-1);
+                            tokens.push_back(_token);
+                            token = "";
+                        }
+                    }
+                }
+
+                if (!instring)
+                {
+                    // put delimiters
+                    if (c == ' ' || c == '\t') { token = ""; continue; }
+                    Token _token{};
+                    _token.type = delimiters.at(c);
+                    _token.value = c;
+                    tokens.push_back(_token);
+                    token = "";
+                }
+            }
+        }
+        if (instring)
+        {
+            if (c == '"') continue;
+            currentString+=c;
+            token = "";
+        }
+    }
+}
+
+/*int is_string = 0;
 int test = 1;
 void Lexer::read_line(const char* line){
     std::string token = "";
@@ -172,7 +259,7 @@ void Lexer::read_line(const char* line){
 
         }
     }    
-}
+}*/
 // void Lexer::read_line(const char* line){
 //     char token[256] = "";
 //     int index = 0;

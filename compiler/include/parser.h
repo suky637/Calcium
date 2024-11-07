@@ -34,6 +34,7 @@ class Parser
 {
     public:
     Parser(std::vector<Token> tokens);
+    bool in_blacklist(int ind=0);
     void compress(std::vector<Token> tokens);
     void display_compressed();
     void add_to_blacklist(std::string token);
@@ -47,10 +48,10 @@ class Parser
     void clearToken();
     void storeToken();
     std::string compile();
+    std::vector<CompressedTokens> comp_tokens{};
+    std::vector<std::string> blacklist{};
     private:
     CompressedTokens current{};
     int index = 0;
     std::vector<Token> tokens{};
-    std::vector<CompressedTokens> comp_tokens{};
-    std::vector<std::string> blacklist{};
 };

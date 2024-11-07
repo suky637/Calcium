@@ -49,27 +49,36 @@ int main(int argc, char* argv[])
     lexer.add_delimiter("LBRAQ", '[');
     lexer.add_delimiter("RBRAQ", ']');
     lexer.add_delimiter("QUOTE", '"');
+    lexer.add_delimiter("NULL", '?');
 
     // reserved words
     lexer.add_token("CONST", "const");
-    lexer.add_token("LOCK", "lock");
+    //lexer.add_token("LOCK", "lock");
     lexer.add_token("INT", "int");
-    lexer.add_token("STRING", "string");
+    //lexer.add_token("STRING", "string");
     lexer.add_token("CHAR", "char");
-    lexer.add_token("ANY", "any");
+    //lexer.add_token("ANY", "any");
     lexer.add_token("RETURN", "return");
     lexer.add_token("BOOLEAN", "bool");
     lexer.add_token("FLOAT", "float");
     lexer.add_token("DOUBLE", "double");
-    lexer.add_token("STRING", "string");
-    lexer.add_token("LOCAL", "local");
-    lexer.add_token("MATH_FUNC", "func");
+    //lexer.add_token("STRING", "string");
+    //lexer.add_token("LOCAL", "local");
+    //lexer.add_token("MATH_FUNC", "func"); // TODO: LATER
     lexer.add_token("FUNCTION", "fn");
     lexer.add_token("RETURN", "return");
     lexer.add_token("BOOLEAN", "bool");
     lexer.add_token("FLOAT", "float");
     lexer.add_token("DOUBLE", "double");
     lexer.add_token("IMPORT", "import");
+    lexer.add_token("POINTER", "point");
+    lexer.add_token("REFERENCE", "ref");
+    lexer.add_token("IF", "if");
+    lexer.add_token("THEN", "then");
+    lexer.add_token("AND", "and");
+    lexer.add_token("OR", "or");
+    lexer.add_token("DATA", "data");
+    lexer.add_token("NAMESPACE", "namespace");
 
     /////////////////////////////////////////////////////////////////////
     // PROCESSING THE LANGUAGE
@@ -94,65 +103,304 @@ int main(int argc, char* argv[])
     
     Parser parser{lexer.tokens};
 
-    parser.add_to_blacklist("CONST");
-    parser.add_to_blacklist("LOCK");
-    parser.add_to_blacklist("FUNC");
-    parser.add_to_blacklist("FN");
-    parser.add_to_blacklist("LOCAL");
     parser.add_to_blacklist("SPACE");
     parser.add_to_blacklist("TAB");
-    parser.add_to_blacklist("COMMA");
 
     
     //parser.compress(lexer.tokens);
 
     while (!parser.end())
     {
-        parser.advance();
+        
         if (parser.get().type == "IMPORT")
         {
-
+            parser.pushType("INCLUDE");
+            parser.pushValue("value", parser.get(1).value);
+            parser.advance();
+            parser.storeToken();
+            parser.clearToken();
         }
         else if (parser.get().type == "UNKNOWN")
         {
-            int ind = -1;
-            parser.pushType("Declaration");
-            parser.pushValue("value", parser.get().value);
-            while (true)
+            if (parser.get(1).type == "EQUALS" || parser.get(1).type == "NULL")
             {
-                if (parser.get(ind).type == "EOL")
-                    break;
-                if (parser.get(ind).type == "Error")
-                    break;
-                if (parser.get(ind).type == "SEMI-COLON")
-                    break;
-                if (parser.get(ind).type == "LPARENT")
-                    break;
-                if (parser.get(ind).type == "COMMA")
-                    break;
-                parser.pushValue(parser.get(ind).type, parser.get(ind).value);
-                ind--;
+                parser.pushType("Declaration");
+                parser.pushValue("value", parser.get().value);
+                int ind = -1;
+                std::string args = "";
+                while (true)
+                {
+                    if (parser.in_blacklist(ind))
+                    {
+                        ind--;
+                        continue;
+                    }
+                    if (parser.get(ind).type == "EOL")
+                        break;
+                    if (parser.get(ind).type == "Error")
+                        break;
+                    if (parser.get(ind).type == "SEMI-COLON")
+                        break;
+                    if (parser.get(ind).type == "LPARENT")
+                        break;
+                    if (parser.get(ind).type == "COMMA")
+                        break;
+                    if (parser.get(ind).type == "POINTER")
+                        args += "*";
+                    else
+                        args += parser.get(ind).value + " ";
+
+                    //parser.pushValue(parser.get(ind).type, parser.get(ind).value);
+                    ind--;
+                }
+                parser.pushValue("TYPE", args);
+                parser.storeToken();
+                parser.clearToken();
+            }
+            else if (parser.get(1).type == "LPARENT")
+            {
+                if (parser.get(-1).type == "FUNCTION")
+                {
+                    parser.pushType("Function");
+                    parser.pushValue("value", parser.get().value);
+                    parser.storeToken();
+                    parser.clearToken();
+                }
+                else
+                {
+                    parser.pushType("Call");
+                    parser.pushValue("value", parser.get().value);
+                    parser.advance(2);
+                    std::string args = "";
+                    while (parser.get().type != "RPARENT")
+                    {
+                        if (parser.get().type == "STR")
+                            args += "\"" + parser.get().value + "\",";
+                        else if (parser.get().type == "POINTER")
+                            args += "*";
+                        else if (parser.get().type == "REFERENCE")
+                            args += "&";
+                        else if (parser.get().type == "DIGIT" || 
+                        parser.get().type == "UNKNOWN")
+                            args += parser.get().value + ",";
+                        parser.advance();
+                    }
+                    args = args.substr(0, args.size()-1);
+                    parser.pushValue("args", args);
+                    parser.advance();
+                    parser.storeToken();
+                    parser.clearToken();
+                }
+            }
+        }
+        else if (parser.get().type == "DATA")
+        {
+            parser.pushType("DATA");
+            if (parser.get(1).type == "UNKNOWN")
+            {
+                parser.pushValue("NAME", parser.get(1).value);
+                parser.advance();
+            }
+            else
+            {
+
             }
             parser.storeToken();
             parser.clearToken();
-            std::cout << "***\n";
+        }
+        else if (parser.get().type == "RPARENT")
+        {
+            parser.pushType("RPARENT");
+            parser.storeToken();
+            parser.clearToken();
+        }
+        else if (parser.get().type == "MINUS" && parser.get(1).type == "GREATER")
+        {
+            parser.pushType("TO");
+
+            parser.pushValue("TYPE", parser.get(2).value);
+
+            parser.storeToken();
+            parser.clearToken();
+
+            parser.advance(2);
+        }
+        else if (parser.get().type == "LCURLYBR")
+        {
+            parser.pushType("OPEN");
+            parser.storeToken();
+            parser.clearToken();
+        }
+        else if (parser.get().type == "RCURLYBR")
+        {
+            parser.pushType("CLOSE");
+            parser.storeToken();
+            parser.clearToken();
+        }
+        else if (parser.get().type == "EQUALS")
+        {
+            if (parser.get(1).type == "EQUALS")
+            {
+                // Condition
+            }
+            else
+            {
+                parser.pushType("EQUAL");
+                std::string str = "";
+                parser.advance();
+                while (parser.get().type != "EOL")
+                {
+                    if (parser.get().type == "STR")
+                        str += "\"" + parser.get().value + "\"";
+                    else if (parser.get().type == "POINTER")
+                        str += "*";
+                    else if (parser.get().type == "REFERENCE")
+                        str += "&";
+                    else
+                        str += parser.get().value;
+                    parser.advance();
+                }
+                parser.pushValue("RIGHT", str);
+                parser.storeToken();
+                parser.clearToken();
+            }
+        }
+        else if (parser.get().type == "COMMA")
+        {
+            parser.pushType("COMMA");
+            parser.storeToken();
+            parser.clearToken();
+        }
+        else if (parser.get().type == "IF")
+        {
+            parser.pushType("IF");
+            std::string str = "";
+            parser.advance();
+            while (parser.get().type != "LCURLYBR" && parser.get().type != "THEN")
+            {
+                if (parser.get().type == "AND")
+                    str += " && ";
+                else if (parser.get().type == "OR")
+                    str += " || ";
+                else if (parser.get().type == "STR")
+                    str += "\"" + parser.get().value + "\"";
+                else if (parser.get().type == "POINTER")
+                    str += "*";
+                else if (parser.get().type == "REFERENCE")
+                    str += "&";
+                else
+                    str += parser.get().value;
+                parser.advance();
+            }
+            parser.advance(-1);
+            parser.pushValue("CONDITION", str);
+            parser.storeToken();
+            parser.clearToken();
+        }
+        else if (parser.get().type == "THEN")
+        {
+
+        }
+        else if (parser.get().type == "RETURN")
+        {
+            parser.pushType("RETURN");
+            parser.storeToken();
+            parser.clearToken();
+        }
+        parser.advance();
+    }
+
+    std::string buf = "";
+    for (int x = 0; x < parser.comp_tokens.size(); x++)
+    {
+        if (parser.comp_tokens.at(x).type == "INCLUDE")
+        {
+            buf += "#include <";
+            buf += parser.comp_tokens.at(x).value.at("value");
+            buf += ">\n";
+        }
+        else if (parser.comp_tokens.at(x).type == "Function")
+        {
+            int y = x+1;
+            while (parser.comp_tokens.at(y).type != "RPARENT")
+            {
+                y++;
+            }
+            if (parser.comp_tokens.at(y+1).value.at("TYPE") == "?")
+            {
+                buf += "void ";
+            }
+            else
+            {
+                buf += parser.comp_tokens.at(y+1).value.at("TYPE") + " ";
+            }
+            buf += parser.comp_tokens.at(x).value.at("value");
+            buf += "(";
+        }
+        else if (parser.comp_tokens.at(x).type == "Declaration")
+        {
+            buf += parser.comp_tokens.at(x).value.at("TYPE");
+            buf += parser.comp_tokens.at(x).value.at("value");
+            if (parser.comp_tokens.at(x+1).type == "COMMA")
+            {
+                buf += ", ";
+            }
+            else if (parser.comp_tokens.at(x+1).type == "Declaration" || parser.comp_tokens.at(x+1).type == "OPEN")
+            {
+                buf += ";\n";
+            }
+            
+        }
+        else if (parser.comp_tokens.at(x).type == "RPARENT")
+        {
+            buf += ")";
+        }
+        else if (parser.comp_tokens.at(x).type == "OPEN")
+        {
+            buf += "{\n";
+        }
+        else if (parser.comp_tokens.at(x).type == "CLOSE")
+        {
+            buf += "};\n";
+        }
+        else if (parser.comp_tokens.at(x).type == "DATA")
+        {
+            buf += "struct ";
+            buf += parser.comp_tokens.at(x).value.at("NAME");
+        }
+        else if (parser.comp_tokens.at(x).type == "Call")
+        {
+            buf += parser.comp_tokens.at(x).value.at("value");
+            buf += "(";
+            buf += parser.comp_tokens.at(x).value.at("args");
+            buf += ");\n";
+        }
+        else if (parser.comp_tokens.at(x).type == "EQUAL")
+        {
+            if (parser.comp_tokens.at(x-1).type == "RETURN")
+            {
+                buf += "return ";
+                buf += parser.comp_tokens.at(x).value.at("RIGHT");
+                buf += ";\n";
+            }
+            else
+            {
+                buf += " = ";
+                buf += parser.comp_tokens.at(x).value.at("RIGHT");
+                buf += ";\n";
+            }
+        }
+        else if (parser.comp_tokens.at(x).type == "IF")
+        {
+            buf += "if (";
+            buf += parser.comp_tokens.at(x).value.at("CONDITION");
+            buf += ")";
         }
     }
-    parser.display_compressed();
-    //std::string res = parser.compile();
-
-    // Specify the file name
-    /*std::string filename = "output.c";
-    std::ofstream outputFile(filename);
-
-    // Check if the file is opened successfully
-    if (outputFile.is_open()) {
-        outputFile << res;
-        outputFile.close();
-    } else {
-        std::cerr << "Unable to open file: " << filename << std::endl;
-    }*/
 
     
+    std::ofstream out("output.c");
+    out << buf;
+    out.close();
     return 0;
 }

@@ -42,11 +42,11 @@ class Lexer
     void read_line(const char* line);
 
     std::vector<Token> tokens{};
+    std::map<char, const char*> delimiters{};
+    std::map<std::string, const char*> comp_tokens{};
     private:
     // Key: type
     // Value: What will be detected by the script
-    std::map<char, const char*> delimiters{};
-    std::map<std::string, const char*> comp_tokens{};
 
 };
 

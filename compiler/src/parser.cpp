@@ -1,5 +1,5 @@
 #include "parser.h"
-
+#include <algorithm>
 /*
     STEP 1
 
@@ -55,6 +55,13 @@ bool Parser::end()
 void Parser::advance(int a)
 {
     index += a;
+}
+
+bool Parser::in_blacklist(int ind)
+{
+    if (index + ind < 0 && index + ind > tokens.size()-1)
+        return false;
+    return std::find(blacklist.begin(), blacklist.end(), tokens.at(index+ind).type) != blacklist.end();
 }
 
 Token Parser::get(int a)
