@@ -13,15 +13,20 @@
     VERSION: 1.0-InDev
 */
 
+#define DEBUG_MODE 1
+
 int main(int argc, char* argv[])
 {
     
     // Make code fast
     //std::ios::sync_with_stdio(false);
+    std::string file_name;
     if (argc != 2){
         std::cout << "Usage: " << argv[0] << " <filename>" << "\n";
-        return 1;
+        std::cin >> file_name;
     }
+    else
+        file_name = argv[1];
 
     Lexer lexer{};
     
@@ -33,7 +38,7 @@ int main(int argc, char* argv[])
     lexer.add_delimiter("COMMA", ',');
     lexer.add_delimiter("PERIOD", '.');
     lexer.add_delimiter("EQUALS", '=');
-    lexer.add_delimiter("LOWER", '<');
+    lexer.add_delimiter("LOWEargv[1]R", '<');
     lexer.add_delimiter("GREATER", '>');
     lexer.add_delimiter("MINUS", '-');
     lexer.add_delimiter("PLUS", '+');
@@ -53,18 +58,12 @@ int main(int argc, char* argv[])
 
     // reserved words
     lexer.add_token("CONST", "const");
-    //lexer.add_token("LOCK", "lock");
     lexer.add_token("INT", "int");
-    //lexer.add_token("STRING", "string");
     lexer.add_token("CHAR", "char");
-    //lexer.add_token("ANY", "any");
     lexer.add_token("RETURN", "return");
     lexer.add_token("BOOLEAN", "bool");
     lexer.add_token("FLOAT", "float");
     lexer.add_token("DOUBLE", "double");
-    //lexer.add_token("STRING", "string");
-    //lexer.add_token("LOCAL", "local");
-    //lexer.add_token("MATH_FUNC", "func"); // TODO: LATER
     lexer.add_token("FUNCTION", "fn");
     lexer.add_token("RETURN", "return");
     lexer.add_token("BOOLEAN", "bool");
@@ -78,13 +77,15 @@ int main(int argc, char* argv[])
     lexer.add_token("AND", "and");
     lexer.add_token("OR", "or");
     lexer.add_token("DATA", "data");
-    lexer.add_token("NAMESPACE", "namespace");
-    lexer.add_token("ENDNAMESPACE", "endnamespace");
+    lexer.add_token("STRUCT", "struct");
+    lexer.add_token("FOR", "for"); // TODO
+    lexer.add_token("WHILE", "while"); // TODO
     /////////////////////////////////////////////////////////////////////
     // PROCESSING THE LANGUAGE
     /////////////////////////////////////////////////////////////////////
     
-    std::ifstream file(argv[1]);
+    
+    std::ifstream file(file_name);
     std::string line;
 
     // Check if the file is open
@@ -110,7 +111,6 @@ int main(int argc, char* argv[])
     //parser.compress(lexer.tokens);
 
     std::string currentNamespace = "";
-
     while (!parser.end())
     {
         
@@ -133,7 +133,24 @@ int main(int argc, char* argv[])
         }
         else if (parser.get().type == "UNKNOWN")
         {
-            if (parser.get(1).type == "EQUALS" || parser.get(1).type == "NULL")
+            if (parser.get(1).type == "PERIOD")
+            {
+                parser.pushType("Declaration");
+                std::string args = "";
+                while (true)
+                {
+                    if (parser.get().type != "UNKNOWN" && parser.get().type != "PERIOD")
+                        break;
+                    else
+                        args += parser.get().value;
+                    parser.advance();
+                }
+                parser.advance(-1);
+                parser.pushValue("value", args);
+                parser.storeToken();
+                parser.clearToken();
+            }
+            else if (parser.get(1).type == "EQUALS" || parser.get(1).type == "NULL")
             {
                 parser.pushType("Declaration");
                 parser.pushValue("value", parser.get().value);
@@ -329,9 +346,12 @@ int main(int argc, char* argv[])
         parser.advance();
     }
 
+    parser.display_compressed();
+
     std::string buf = "";
     for (int x = 0; x < parser.comp_tokens.size(); x++)
     {
+        //std::cout << x << std::endl;
         if (parser.comp_tokens.at(x).type == "INCLUDE")
         {
             buf += "#include <";
@@ -355,16 +375,25 @@ int main(int argc, char* argv[])
             }
             buf += parser.comp_tokens.at(x).value.at("value");
             buf += "(";
+            if (parser.comp_tokens.at(x).value.count("arg"))
+                buf += parser.comp_tokens.at(x).value.at("arg") + " this";
+            if (parser.comp_tokens.at(x+1).type == "Declaration" && parser.comp_tokens.at(x).value.count("arg"))
+                buf += ", ";
         }
         else if (parser.comp_tokens.at(x).type == "Declaration")
         {
-            buf += parser.comp_tokens.at(x).value.at("TYPE");
+            if (parser.comp_tokens.at(x).value.count("TYPE"))
+                buf += parser.comp_tokens.at(x).value.at("TYPE");
             buf += parser.comp_tokens.at(x).value.at("value");
-            if (parser.comp_tokens.at(x+1).type == "COMMA")
+            if (parser.comp_tokens.size() <= x+1)
+            {
+                buf += ";\n";
+            }
+            else if (parser.comp_tokens.at(x+1).type == "COMMA")
             {
                 buf += ", ";
             }
-            else if (parser.comp_tokens.at(x+1).type == "Declaration" || parser.comp_tokens.at(x+1).type == "CLOSE")
+            else if (parser.comp_tokens.at(x+1).type != "EQUAL")
             {
                 buf += ";\n";
             }
@@ -396,6 +425,7 @@ int main(int argc, char* argv[])
         }
         else if (parser.comp_tokens.at(x).type == "EQUAL")
         {
+            //std::cout << "Work?\n";
             if (parser.comp_tokens.at(x-1).type == "RETURN")
             {
                 buf += "return ";
@@ -416,7 +446,6 @@ int main(int argc, char* argv[])
             buf += ")";
         }
     }
-
     
     std::ofstream out("output.c");
     out << buf;
