@@ -15,18 +15,14 @@
 
 #define DEBUG_MODE 1
 
-int main(int argc, char* argv[])
+
+void compile(std::string file_name)
 {
     
-    // Make code fast
-    //std::ios::sync_with_stdio(false);
-    std::string file_name;
-    if (argc != 2){
-        std::cout << "Usage: " << argv[0] << " <filename>" << "\n";
-        std::cin >> file_name;
-    }
-    else
-        file_name = argv[1];
+    std::string out_fn = file_name;
+    int pos_filePath = file_name.find_last_of('.');
+    if (pos_filePath != std::string::npos)
+        out_fn = file_name.substr(0, pos_filePath) + ".c";
 
     Lexer lexer{};
     
@@ -91,7 +87,7 @@ int main(int argc, char* argv[])
     // Check if the file is open
     if (!file.is_open()) {
         std::cerr << "Error opening file." << std::endl;
-        return 1;
+        exit(1);
     }
     while (std::getline(file, line))
     {
@@ -117,7 +113,36 @@ int main(int argc, char* argv[])
         if (parser.get().type == "IMPORT")
         {
             parser.pushType("INCLUDE");
-            parser.pushValue("value", parser.get(1).value);
+            // Saying which type of lib it is
+            int lastInd = parser.get(1).value.find_last_of('.');
+            parser.pushValue("realValue", parser.get(1).value);
+            if (lastInd == std::string::npos)
+            {
+                parser.pushValue("type", "unknown");
+            }
+            else
+            {
+                std::string extension = parser.get(1).value.substr(lastInd + 1);
+                if (extension == "h")
+                {
+                    parser.pushValue("value", parser.get(1).value);
+                    parser.pushValue("type", "c");
+                }
+                else if (extension == "c")
+                {
+                    parser.pushValue("value", parser.get(1).value);
+                    parser.pushValue("type", "c");
+                }
+                else if (extension == "cal")
+                {
+                    parser.pushValue("value", parser.get(1).value.substr(0, lastInd) + ".c");
+                    parser.pushValue("type", "cal");
+                }
+                else
+                {
+                    parser.pushValue("type", "unknown");
+                }
+            }
             parser.advance();
             parser.storeToken();
             parser.clearToken();
@@ -346,7 +371,7 @@ int main(int argc, char* argv[])
         parser.advance();
     }
 
-    parser.display_compressed();
+    //parser.display_compressed();
 
     std::string buf = "";
     for (int x = 0; x < parser.comp_tokens.size(); x++)
@@ -354,9 +379,19 @@ int main(int argc, char* argv[])
         //std::cout << x << std::endl;
         if (parser.comp_tokens.at(x).type == "INCLUDE")
         {
-            buf += "#include <";
-            buf += parser.comp_tokens.at(x).value.at("value");
-            buf += ">\n";
+            if (parser.comp_tokens.at(x).value.at("type") == "cal")
+            {
+                buf += "#include <";
+                buf += parser.comp_tokens.at(x).value.at("value");
+                buf += ">\n";
+                compile(parser.comp_tokens.at(x).value.at("realValue"));
+            }
+            else
+            {
+                buf += "#include <";
+                buf += parser.comp_tokens.at(x).value.at("value");
+                buf += ">\n";
+            }
         }
         else if (parser.comp_tokens.at(x).type == "Function")
         {
@@ -393,6 +428,8 @@ int main(int argc, char* argv[])
             {
                 buf += ", ";
             }
+            else if (parser.comp_tokens.at(x+1).type == "RPARENT")
+                buf += "";
             else if (parser.comp_tokens.at(x+1).type != "EQUAL")
             {
                 buf += ";\n";
@@ -447,8 +484,24 @@ int main(int argc, char* argv[])
         }
     }
     
-    std::ofstream out("output.c");
+    std::ofstream out(out_fn);
     out << buf;
     out.close();
+}
+
+int main(int argc, char* argv[])
+{
+    
+    // Make code fast
+    //std::ios::sync_with_stdio(false);
+    std::string file_name;
+    if (argc != 2){
+        std::cout << "Usage: " << argv[0] << " <filename>" << "\n";
+        std::cin >> file_name;
+    }
+    else
+        file_name = argv[1];
+    
+    compile(file_name);
     return 0;
 }
