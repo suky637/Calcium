@@ -73,6 +73,8 @@ void compile(std::string file_name)
     lexer.add_token("AND", "and");
     lexer.add_token("OR", "or");
     lexer.add_token("DATA", "data");
+    lexer.add_token("NAMESPACE", "namespace");
+    lexer.add_token("ENDNAMESPACE", "endnamespace");
     lexer.add_token("STRUCT", "struct");
     //lexer.add_token("FOR", "for"); // TODO
     lexer.add_token("WHILE", "while"); // TODO
