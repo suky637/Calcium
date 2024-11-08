@@ -1,0 +1,19 @@
+import "string.h"
+
+data string
+{
+    point char val?
+}
+namespace string
+    fn create(point char value?) -> string struct
+    {
+        string struct x?
+        x.val = value
+        return = x
+    }
+    fn set(string struct val?, point char value?) -> string struct
+    {
+        val.val = value
+        return val
+    }
+endnamespace

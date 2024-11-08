@@ -34,7 +34,7 @@ void compile(std::string file_name)
     lexer.add_delimiter("COMMA", ',');
     lexer.add_delimiter("PERIOD", '.');
     lexer.add_delimiter("EQUALS", '=');
-    lexer.add_delimiter("LOWEargv[1]R", '<');
+    lexer.add_delimiter("LOWER", '<');
     lexer.add_delimiter("GREATER", '>');
     lexer.add_delimiter("MINUS", '-');
     lexer.add_delimiter("PLUS", '+');
@@ -235,12 +235,16 @@ void compile(std::string file_name)
                             args += "*";
                         else if (parser.get().type == "REFERENCE")
                             args += "&";
-                        else if (parser.get().type == "DIGIT" || 
-                        parser.get().type == "UNKNOWN")
-                            args += parser.get().value + ",";
+                        else if (parser.get().type == "DIGIT")
+                            args += parser.get().value;
+                        else if (parser.get().type == "UNKNOWN")
+                            args += parser.get().value;
+                        else if (parser.get().type == "COMMA")
+                            args += ",";
+                        else if (parser.get().type == "PERIOD")
+                            args += ".";
                         parser.advance();
                     }
-                    args = args.substr(0, args.size()-1);
                     parser.pushValue("args", args);
                     parser.advance();
                     parser.storeToken();
@@ -273,7 +277,28 @@ void compile(std::string file_name)
         {
             parser.pushType("TO");
 
-            parser.pushValue("TYPE", parser.get(2).value);
+            int x = 1;
+            std::vector<std::string> types{};
+            while (parser.get(x).type != "LCURLYBR")
+            {
+                if (parser.get(x).value == "?")
+                    types.push_back("void");
+                else
+                    types.push_back(parser.get(x).value);
+                x++;
+            }
+            std::string type = "";
+            int _x = types.size() - 1;
+            if (_x == 0)
+                type = types.at(0);
+            else
+            {
+                for (int j = types.size() - 1; j > 0; j--)
+                {
+                    type += types.at(j) + " ";
+                }
+            }
+            parser.pushValue("TYPE", type);
 
             parser.storeToken();
             parser.clearToken();
@@ -311,7 +336,7 @@ void compile(std::string file_name)
                         str += "*";
                     else if (parser.get().type == "REFERENCE")
                         str += "&";
-                    else if (parser.get().type == "PERIOD" && parser.get(-1).type == "UNKNOWN" && parser.get(1).type == "UNKNOWN")
+                    else if (parser.get().type == "PERIOD" && parser.get(-1).type == "UNKNOWN" && parser.get(1).type == "UNKNOWN" && parser.get(2).type == "LPARENT")
                         str += "__";
                     else
                         str += parser.get().value;
@@ -393,7 +418,7 @@ void compile(std::string file_name)
         }
         else if (parser.get().type == "PERIOD")
         {
-            parser.pushType("PRERIOD");
+            parser.pushType("PERIOD");
             parser.storeToken();
             parser.clearToken();
         }
@@ -410,9 +435,9 @@ void compile(std::string file_name)
         {
             if (parser.comp_tokens.at(x).value.at("type") == "cal")
             {
-                buf += "#include <";
+                buf += "#include \"";
                 buf += parser.comp_tokens.at(x).value.at("value");
-                buf += ">\n";
+                buf += "\"\n";
                 compile(parser.comp_tokens.at(x).value.at("realValue"));
             }
             else
