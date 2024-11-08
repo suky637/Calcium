@@ -74,7 +74,7 @@ void compile(std::string file_name)
     lexer.add_token("OR", "or");
     lexer.add_token("DATA", "data");
     lexer.add_token("STRUCT", "struct");
-    lexer.add_token("FOR", "for"); // TODO
+    //lexer.add_token("FOR", "for"); // TODO
     lexer.add_token("WHILE", "while"); // TODO
     /////////////////////////////////////////////////////////////////////
     // PROCESSING THE LANGUAGE
@@ -352,6 +352,33 @@ void compile(std::string file_name)
             parser.storeToken();
             parser.clearToken();
         }
+
+        else if (parser.get().type == "WHILE")
+        {
+            parser.pushType("WHILE");
+            std::string str = "";
+            parser.advance();
+            while (parser.get().type != "LCURLYBR" && parser.get().type != "THEN")
+            {
+                if (parser.get().type == "AND")
+                    str += " && ";
+                else if (parser.get().type == "OR")
+                    str += " || ";
+                else if (parser.get().type == "STR")
+                    str += "\"" + parser.get().value + "\"";
+                else if (parser.get().type == "POINTER")
+                    str += "*";
+                else if (parser.get().type == "REFERENCE")
+                    str += "&";
+                else
+                    str += parser.get().value;
+                parser.advance();
+            }
+            parser.advance(-1);
+            parser.pushValue("CONDITION", str);
+            parser.storeToken();
+            parser.clearToken();
+        }
         else if (parser.get().type == "THEN")
         {
 
@@ -479,6 +506,12 @@ void compile(std::string file_name)
         else if (parser.comp_tokens.at(x).type == "IF")
         {
             buf += "if (";
+            buf += parser.comp_tokens.at(x).value.at("CONDITION");
+            buf += ")";
+        }
+        else if (parser.comp_tokens.at(x).type == "WHILE")
+        {
+            buf += "while (";
             buf += parser.comp_tokens.at(x).value.at("CONDITION");
             buf += ")";
         }
