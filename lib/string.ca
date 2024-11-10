@@ -1,0 +1,47 @@
+import "string.h"
+import "stdlib.h"
+import "stdio.h"
+
+data string
+{
+    point char val?
+}
+namespace string
+    fn create(point char value?) -> string struct
+    {
+        string struct x?
+        x.val = value
+        return = x
+    }
+    fn set(string struct val?, point char value?) -> string struct
+    {
+        val.val = value
+        return val
+    }
+    fn length(string struct val?) -> int
+    {
+        int ret?
+        ret = strlen(val.val)
+        return = ret
+    }
+    fn removeAt(string struct val?, int index?) -> string struct
+    {
+        int size = string.length(val)
+        if size < index then return = val
+        point char ret = malloc(sizeof(char) * (size - 1))
+        int i = 0
+        int j = 0
+        while i < size
+        {
+            if i != index
+            {
+                ret[j] = val.val[i]
+                j = j + 1
+                
+            }
+            i = i + 1
+        }
+        string struct buf = string.create(ret)
+        return = buf
+    }
+endnamespace

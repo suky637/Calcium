@@ -138,10 +138,10 @@ void compile(std::string file_name)
                 int lastInd = parser.get(1).value.find_last_of('.');
                 parser.pushValue("realValue", std::filesystem::absolute(LIB_PATH + parser.get(1).value).generic_string());
                 std::string extension = parser.get(1).value.substr(lastInd + 1);
-                    if (extension == "cal")
+                    if (extension == "ca")
                     {
                         parser.pushValue("value", std::filesystem::absolute(LIB_PATH + parser.get(1).value.substr(0, lastInd) + ".c"));
-                        parser.pushValue("type", "cal");
+                        parser.pushValue("type", "ca");
                     }
                     else
                     {
@@ -170,10 +170,10 @@ void compile(std::string file_name)
                         parser.pushValue("value", parser.get(1).value);
                         parser.pushValue("type", "c");
                     }
-                    else if (extension == "cal")
+                    else if (extension == "ca")
                     {
                         parser.pushValue("value", parser.get(1).value.substr(0, lastInd) + ".c");
-                        parser.pushValue("type", "cal");
+                        parser.pushValue("type", "ca");
                     }
                     else
                     {
@@ -435,6 +435,8 @@ void compile(std::string file_name)
                     str += "*";
                 else if (parser.get().type == "REFERENCE")
                     str += "&";
+                else if (parser.get().type == "PERIOD" && parser.get(1).type == "UNKNOWN" && parser.get(2).type == "LPARENT")
+                    str += "__";
                 else
                     str += parser.get().value;
                 parser.advance();
@@ -462,6 +464,8 @@ void compile(std::string file_name)
                     str += "*";
                 else if (parser.get().type == "REFERENCE")
                     str += "&";
+                else if (parser.get().type == "PERIOD" && parser.get(1).type == "UNKNOWN" && parser.get(2).type == "LPARENT")
+                    str += "__";
                 else
                     str += parser.get().value;
                 parser.advance();
@@ -507,7 +511,7 @@ void compile(std::string file_name)
         //std::cout << x << std::endl;
         if (parser.comp_tokens.at(x).type == "INCLUDE")
         {
-            if (parser.comp_tokens.at(x).value.at("type") == "cal")
+            if (parser.comp_tokens.at(x).value.at("type") == "ca")
             {
                 buf += "#include \"";
                 buf += parser.comp_tokens.at(x).value.at("value");
