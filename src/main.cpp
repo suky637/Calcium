@@ -2,6 +2,7 @@
 #include <fstream>
 #include <lexer.h>
 #include <parser.h>
+#include <filesystem>
 
 /*
     Suky_Laplante
@@ -14,11 +15,11 @@
 */
 
 #define DEBUG_MODE 1
+#define BUILD_MODE
 
 
 void compile(std::string file_name)
 {
-    
     std::string out_fn = file_name;
     int pos_filePath = file_name.find_last_of('.');
     if (pos_filePath != std::string::npos)
@@ -108,47 +109,85 @@ void compile(std::string file_name)
     
     //parser.compress(lexer.tokens);
 
+    /////////////////////////////////////////////////////////////////////////////////////////////////////
+    // PARSING
+    /////////////////////////////////////////////////////////////////////////////////////////////////////
+
     std::string currentNamespace = "";
     while (!parser.end())
     {
-        
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
+        // IMPORTS
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
         if (parser.get().type == "IMPORT")
         {
             parser.pushType("INCLUDE");
-            // Saying which type of lib it is
-            int lastInd = parser.get(1).value.find_last_of('.');
-            parser.pushValue("realValue", parser.get(1).value);
-            if (lastInd == std::string::npos)
+            
+            #ifdef BUILD_MODE
+            #define LIB_PATH "../lib/"
+            #else
+            #define LIB_PATH "lib/"
+            #endif
+
+            if (std::filesystem::exists(LIB_PATH + parser.get(1).value))
             {
-                parser.pushValue("type", "unknown");
+
+                // value: not-compiled
+                // real-value: compiled
+
+                int lastInd = parser.get(1).value.find_last_of('.');
+                parser.pushValue("realValue", std::filesystem::absolute(LIB_PATH + parser.get(1).value).generic_string());
+                std::string extension = parser.get(1).value.substr(lastInd + 1);
+                    if (extension == "cal")
+                    {
+                        parser.pushValue("value", std::filesystem::absolute(LIB_PATH + parser.get(1).value.substr(0, lastInd) + ".c"));
+                        parser.pushValue("type", "cal");
+                    }
+                    else
+                    {
+                        parser.pushValue("type", "unknown");
+                    }
             }
             else
             {
-                std::string extension = parser.get(1).value.substr(lastInd + 1);
-                if (extension == "h")
+                // Saying which type of lib it is
+                int lastInd = parser.get(1).value.find_last_of('.');
+                parser.pushValue("realValue", parser.get(1).value);
+                if (lastInd == std::string::npos)
                 {
-                    parser.pushValue("value", parser.get(1).value);
-                    parser.pushValue("type", "c");
-                }
-                else if (extension == "c")
-                {
-                    parser.pushValue("value", parser.get(1).value);
-                    parser.pushValue("type", "c");
-                }
-                else if (extension == "cal")
-                {
-                    parser.pushValue("value", parser.get(1).value.substr(0, lastInd) + ".c");
-                    parser.pushValue("type", "cal");
+                    parser.pushValue("type", "unknown");
                 }
                 else
                 {
-                    parser.pushValue("type", "unknown");
+                    std::string extension = parser.get(1).value.substr(lastInd + 1);
+                    if (extension == "h")
+                    {
+                        parser.pushValue("value", parser.get(1).value);
+                        parser.pushValue("type", "c");
+                    }
+                    else if (extension == "c")
+                    {
+                        parser.pushValue("value", parser.get(1).value);
+                        parser.pushValue("type", "c");
+                    }
+                    else if (extension == "cal")
+                    {
+                        parser.pushValue("value", parser.get(1).value.substr(0, lastInd) + ".c");
+                        parser.pushValue("type", "cal");
+                    }
+                    else
+                    {
+                        parser.pushValue("type", "unknown");
+                    }
                 }
             }
             parser.advance();
             parser.storeToken();
             parser.clearToken();
         }
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
+        // NAMESPLACE
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
         else if (parser.get().type == "NAMESPACE")
         {
             currentNamespace = parser.get(1).value + "__";
@@ -158,6 +197,9 @@ void compile(std::string file_name)
         {
             currentNamespace = "";
         }
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
+        // VARIABLES | FUNCTIONS
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
         else if (parser.get().type == "UNKNOWN")
         {
             if (parser.get(1).type == "PERIOD")
@@ -174,6 +216,14 @@ void compile(std::string file_name)
                 }
                 parser.advance(-1);
                 parser.pushValue("value", args);
+                parser.storeToken();
+                parser.clearToken();
+            }
+            else if (parser.get(1).type == "LBRAQ")
+            {
+                parser.pushType("Declaration");
+                parser.pushValue("value", parser.get().value + "[" + parser.get(2).value + "]");
+                parser.advance(2);
                 parser.storeToken();
                 parser.clearToken();
             }
@@ -230,7 +280,7 @@ void compile(std::string file_name)
                     while (parser.get().type != "RPARENT")
                     {
                         if (parser.get().type == "STR")
-                            args += "\"" + parser.get().value + "\",";
+                            args += "\"" + parser.get().value + "\"";
                         else if (parser.get().type == "POINTER")
                             args += "*";
                         else if (parser.get().type == "REFERENCE")
@@ -252,6 +302,9 @@ void compile(std::string file_name)
                 }
             }
         }
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
+        // STRUCTS
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
         else if (parser.get().type == "DATA")
         {
             parser.pushType("DATA");
@@ -267,12 +320,16 @@ void compile(std::string file_name)
             parser.storeToken();
             parser.clearToken();
         }
+        // no one cares about that
         else if (parser.get().type == "RPARENT")
         {
             parser.pushType("RPARENT");
             parser.storeToken();
             parser.clearToken();
         }
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
+        // TO (->) KEYWORD
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
         else if (parser.get().type == "MINUS" && parser.get(1).type == "GREATER")
         {
             parser.pushType("TO");
@@ -305,6 +362,7 @@ void compile(std::string file_name)
 
             parser.advance(2);
         }
+        // yet an another thing that no one cares
         else if (parser.get().type == "LCURLYBR")
         {
             parser.pushType("OPEN");
@@ -317,6 +375,9 @@ void compile(std::string file_name)
             parser.storeToken();
             parser.clearToken();
         }
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
+        // EQUALITY
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
         else if (parser.get().type == "EQUALS")
         {
             if (parser.get(1).type == "EQUALS")
@@ -347,12 +408,16 @@ void compile(std::string file_name)
                 parser.clearToken();
             }
         }
+        // again? an another symbol that no one cares?
         else if (parser.get().type == "COMMA")
         {
             parser.pushType("COMMA");
             parser.storeToken();
             parser.clearToken();
         }
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
+        // CONDITION
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
         else if (parser.get().type == "IF")
         {
             parser.pushType("IF");
@@ -406,16 +471,21 @@ void compile(std::string file_name)
             parser.storeToken();
             parser.clearToken();
         }
+        // useless symbol. litterally the most useless thing in this entire programming language. This token doesn't do anything, yet I still implemented it because I thought it would be cool. the "then" keyword is just a cosmetic keyword that is completely optionnal, and I'm too lazy to remove that useless keyword, but I'm not too lazy to write a text for that.
         else if (parser.get().type == "THEN")
         {
 
         }
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
+        // RETURN
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
         else if (parser.get().type == "RETURN")
         {
             parser.pushType("RETURN");
             parser.storeToken();
             parser.clearToken();
         }
+        // forget about it
         else if (parser.get().type == "PERIOD")
         {
             parser.pushType("PERIOD");
@@ -424,6 +494,10 @@ void compile(std::string file_name)
         }
         parser.advance();
     }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////
+    // COMPILATION
+    /////////////////////////////////////////////////////////////////////////////////////////////////////
 
     //parser.display_compressed();
 
