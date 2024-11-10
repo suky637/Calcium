@@ -16,7 +16,7 @@ namespace string
         val.val = value
         return val
     }
-    fn lenght(string struct val?) -> int
+    fn length(string struct val?) -> int
     {
         int ret?
         ret = strlen(ret)
