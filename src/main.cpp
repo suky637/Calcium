@@ -340,6 +340,8 @@ void compile(std::string file_name)
             {
                 if (parser.get(x).value == "?")
                     types.push_back("void");
+                else if (parser.get(x).value == "point")
+                    types.push_back("*");
                 else
                     types.push_back(parser.get(x).value);
                 x++;
