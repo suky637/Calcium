@@ -15,7 +15,7 @@
 */
 
 #define DEBUG_MODE 1
-#define BUILD_MODE
+//#define BUILD_MODE
 
 
 void compile(std::string file_name)

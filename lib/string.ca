@@ -44,4 +44,8 @@ namespace string
         string struct buf = string.create(ret)
         return = buf
     }
+    fn pushChar(string struct val?, char c?) -> string struct
+    {
+        
+    }
 endnamespace

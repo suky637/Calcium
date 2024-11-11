@@ -39,3 +39,6 @@ i = i+1;
 struct string buf = string__create(ret);
 return buf;
 };
+
+ struct string  string__pushChar(struct string val, char c){
+};
