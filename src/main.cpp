@@ -15,7 +15,7 @@
 */
 
 #define DEBUG_MODE 1
-//#define BUILD_MODE
+#define BUILD_MODE
 
 
 void compile(std::string file_name)
@@ -78,7 +78,11 @@ void compile(std::string file_name)
     lexer.add_token("ENDNAMESPACE", "endnamespace");
     lexer.add_token("STRUCT", "struct");
     //lexer.add_token("FOR", "for"); // TODO
-    lexer.add_token("WHILE", "while"); // TODO
+    lexer.add_token("WHILE", "while");
+    lexer.add_token("SAFEFN", "safefn");
+    lexer.add_token("DELETE", "delete");
+    lexer.add_token("DELETE_END", "delete_end");
+    lexer.add_token("KEEP", "keep");
     /////////////////////////////////////////////////////////////////////
     // PROCESSING THE LANGUAGE
     /////////////////////////////////////////////////////////////////////
@@ -251,7 +255,14 @@ void compile(std::string file_name)
                     if (parser.get(ind).type == "COMMA")
                         break;
                     if (parser.get(ind).type == "POINTER")
+                    {
+                        parser.pushValue("pointer", "1");
                         args += "*";
+                    }
+                    else if (parser.get(ind).type == "KEEP")
+                    {
+                        parser.pushValue("not", "1");
+                    }
                     else
                         args += parser.get(ind).value + " ";
 
@@ -267,6 +278,13 @@ void compile(std::string file_name)
                 if (parser.get(-1).type == "FUNCTION")
                 {
                     parser.pushType("Function");
+                    parser.pushValue("value", currentNamespace + parser.get().value);
+                    parser.storeToken();
+                    parser.clearToken();
+                }
+                else if (parser.get(-1).type == "SAFEFN")
+                {
+                    parser.pushType("Safe Function");
                     parser.pushValue("value", currentNamespace + parser.get().value);
                     parser.storeToken();
                     parser.clearToken();
@@ -368,6 +386,18 @@ void compile(std::string file_name)
         else if (parser.get().type == "LCURLYBR")
         {
             parser.pushType("OPEN");
+            parser.storeToken();
+            parser.clearToken();
+        }
+        else if (parser.get().type == "DELETE")
+        {
+            parser.pushType("DELETE");
+            parser.storeToken();
+            parser.clearToken();
+        }
+        else if (parser.get().type == "DELETE_END")
+        {
+            parser.pushType("DELETE_END");
             parser.storeToken();
             parser.clearToken();
         }
@@ -507,9 +537,12 @@ void compile(std::string file_name)
 
     //parser.display_compressed();
 
+    bool isInSafeFN = false;
+    std::vector<std::string> variableGotten{};
     std::string buf = "";
     for (int x = 0; x < parser.comp_tokens.size(); x++)
     {
+        // Safe Function
         //std::cout << x << std::endl;
         if (parser.comp_tokens.at(x).type == "INCLUDE")
         {
@@ -549,11 +582,58 @@ void compile(std::string file_name)
             if (parser.comp_tokens.at(x+1).type == "Declaration" && parser.comp_tokens.at(x).value.count("arg"))
                 buf += ", ";
         }
+        else if (parser.comp_tokens.at(x).type == "DELETE_END")
+        {
+            for (auto s : variableGotten)
+            {
+                buf += "free(";
+                buf += s;
+                buf += ");\n";
+            }
+            isInSafeFN = 0;
+            variableGotten.clear();
+        }
+        else if (parser.comp_tokens.at(x).type == "DELETE")
+        {
+            for (auto s : variableGotten)
+            {
+                buf += "free(";
+                buf += s;
+                buf += ");\n";
+            }
+        }
+        else if (parser.comp_tokens.at(x).type == "Safe Function")
+        {
+            isInSafeFN = 1;
+            int y = x+1;
+            while (parser.comp_tokens.at(y).type != "RPARENT")
+            {
+                y++;
+            }
+            if (parser.comp_tokens.at(y+1).value.at("TYPE") == "?")
+            {
+                buf += "void ";
+            }
+            else
+            {
+                buf += parser.comp_tokens.at(y+1).value.at("TYPE") + " ";
+            }
+            buf += parser.comp_tokens.at(x).value.at("value");
+            buf += "(";
+            if (parser.comp_tokens.at(x).value.count("arg"))
+                buf += parser.comp_tokens.at(x).value.at("arg") + " this";
+            if (parser.comp_tokens.at(x+1).type == "Declaration" && parser.comp_tokens.at(x).value.count("arg"))
+                buf += ", ";
+        }
         else if (parser.comp_tokens.at(x).type == "Declaration")
         {
             if (parser.comp_tokens.at(x).value.count("TYPE"))
                 buf += parser.comp_tokens.at(x).value.at("TYPE");
             buf += parser.comp_tokens.at(x).value.at("value");
+            if (parser.comp_tokens.at(x).value.count("pointer") && !parser.comp_tokens.at(x).value.count("not") && isInSafeFN)
+            {
+                variableGotten.push_back(parser.comp_tokens.at(x).value.at("value"));
+            }
             if (parser.comp_tokens.size() <= x+1)
             {
                 buf += ";\n";

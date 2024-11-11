@@ -46,6 +46,16 @@ namespace string
     }
     fn pushChar(string struct val?, char c?) -> string struct
     {
-        
+        int size = string.length(val)
+        point char ret = malloc(sizeof(char) * (size + 1))
+        int i = 0
+        while i < size
+        {
+            ret[i] = val.val[i]
+            i = i + 1
+        }
+        ret[i] = c
+        string struct buf = string.create(ret)
+        return = buf
     }
 endnamespace

@@ -41,4 +41,15 @@ return buf;
 };
 
  struct string  string__pushChar(struct string val, char c){
+int size = string__length(val);
+char *ret = malloc(sizeof(char)*(size+1));
+int i = 0;
+while (i<size
+){
+ret[i] = val.val[i];
+i = i+1;
+};
+ret[i] = c;
+struct string buf = string__create(ret);
+return buf;
 };
