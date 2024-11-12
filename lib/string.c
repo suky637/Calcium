@@ -53,3 +53,24 @@ ret[i] = c;
 struct string buf = string__create(ret);
 return buf;
 };
+
+ struct string  string__pushString(struct string val, struct string add){
+int size = string__length(add);
+int i = 0;
+while (i<size
+){
+val = string__pushChar(val,add.val[i]);
+i = i+1;
+};
+return val;
+};
+
+ struct string  string__removeFrom(struct string val, int startInd, int endInd){
+int i = startInd;
+while (i<endInd
+){
+val = string__removeAt(val,i);
+i = i+1;
+};
+return val;
+};

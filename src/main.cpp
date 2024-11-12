@@ -21,9 +21,13 @@
 void compile(std::string file_name)
 {
     std::string out_fn = file_name;
+    std::string out_bak = file_name;
     int pos_filePath = file_name.find_last_of('.');
     if (pos_filePath != std::string::npos)
+    {
+        out_bak = file_name.substr(0, pos_filePath) + ".bak";
         out_fn = file_name.substr(0, pos_filePath) + ".c";
+    }
 
     Lexer lexer{};
     
@@ -90,6 +94,7 @@ void compile(std::string file_name)
     
     std::ifstream file(file_name);
     std::string line;
+
 
     // Check if the file is open
     if (!file.is_open()) {
@@ -259,6 +264,14 @@ void compile(std::string file_name)
                         parser.pushValue("pointer", "1");
                         args += "*";
                     }
+                    else if (parser.get(ind).type == "DIGIT")
+                    {
+                        parser.pushValue("array", parser.get(ind).value);
+                    }
+                    else if (parser.get(ind).type == "NULL")
+                    {
+                        parser.pushValue("array", "NULL");
+                    }
                     else if (parser.get(ind).type == "KEEP")
                     {
                         parser.pushValue("not", "1");
@@ -295,7 +308,8 @@ void compile(std::string file_name)
                     parser.pushValue("value", parser.get().value);
                     parser.advance(2);
                     std::string args = "";
-                    while (parser.get().type != "RPARENT")
+                    int current = 0;
+                    while (parser.get().type != "RPARENT" || current != 0)
                     {
                         if (parser.get().type == "STR")
                             args += "\"" + parser.get().value + "\"";
@@ -307,6 +321,20 @@ void compile(std::string file_name)
                             args += parser.get().value;
                         else if (parser.get().type == "UNKNOWN")
                             args += parser.get().value;
+                        else if (parser.get().type == "LBRAQ")
+                            args += "[";
+                        else if (parser.get().type == "RBRAQ")
+                            args += "]";
+                        else if (parser.get().type == "LPARENT")
+                        {
+                            args += "(";
+                            current++;
+                        }
+                        else if (parser.get().type == "RPARENT")
+                        {
+                            args += ")";
+                            current--;
+                        }
                         else if (parser.get().type == "COMMA")
                             args += ",";
                         else if (parser.get().type == "PERIOD")
@@ -630,6 +658,13 @@ void compile(std::string file_name)
             if (parser.comp_tokens.at(x).value.count("TYPE"))
                 buf += parser.comp_tokens.at(x).value.at("TYPE");
             buf += parser.comp_tokens.at(x).value.at("value");
+            if (parser.comp_tokens.at(x).value.count("array"))
+            {
+                buf += "[";
+                if (parser.comp_tokens.at(x).value.at("array") != "NULL")
+                    buf += parser.comp_tokens.at(x).value.at("array");
+                buf += "]";
+            }
             if (parser.comp_tokens.at(x).value.count("pointer") && !parser.comp_tokens.at(x).value.count("not") && isInSafeFN)
             {
                 variableGotten.push_back(parser.comp_tokens.at(x).value.at("value"));

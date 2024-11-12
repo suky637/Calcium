@@ -58,4 +58,25 @@ namespace string
         string struct buf = string.create(ret)
         return = buf
     }
+    fn pushString(string struct val?, string struct add?) -> string struct
+    {
+        int size = string.length(add)
+        int i = 0
+        while i < size
+        {
+            val = string.pushChar(val, add.val[i])
+            i = i + 1
+        }
+        return = val
+    }
+    fn removeFrom(string struct val?, int startInd?, int endInd?) -> string struct
+    {
+        int i = startInd
+        while i < endInd
+        {
+            val = string.removeAt(val, i)
+            i = i + 1
+        }
+        return = val
+    }
 endnamespace
