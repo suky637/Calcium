@@ -750,6 +750,7 @@ int main(int argc, char* argv[])
     // Make code fast
     //std::ios::sync_with_stdio(false);
     std::string file_name;
+    
     if (argc != 2){
         std::cout << "Usage: " << argv[0] << " <filename>" << "\n";
         std::cin >> file_name;
