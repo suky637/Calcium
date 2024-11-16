@@ -9,13 +9,13 @@
 
     CALCIUM PROGRAMMING LANGUAGE
 
-    FILE EXTENSION: *.cal
+    FILE EXTENSION: *.ca
 
     VERSION: 1.0-InDev
 */
 
-#define DEBUG_MODE 1
-#define BUILD_MODE
+//#define DEBUG_MODE 1
+//#define BUILD_MODE
 
 
 void compile(std::string file_name)
@@ -75,6 +75,7 @@ void compile(std::string file_name)
     lexer.add_token("REFERENCE", "ref");
     lexer.add_token("IF", "if");
     lexer.add_token("THEN", "then");
+    lexer.add_token("ELSE", "else");
     lexer.add_token("AND", "and");
     lexer.add_token("OR", "or");
     lexer.add_token("DATA", "data");
@@ -87,6 +88,8 @@ void compile(std::string file_name)
     lexer.add_token("DELETE", "delete");
     lexer.add_token("DELETE_END", "delete_end");
     lexer.add_token("KEEP", "keep");
+    lexer.add_token("CONTINUE", "continue");
+    lexer.add_token("BREAK", "break");
     /////////////////////////////////////////////////////////////////////
     // PROCESSING THE LANGUAGE
     /////////////////////////////////////////////////////////////////////
@@ -135,9 +138,8 @@ void compile(std::string file_name)
             #ifdef BUILD_MODE
             #define LIB_PATH "../lib/"
             #else
-            #define LIB_PATH "lib/"
+            #define LIB_PATH "/bin/lib/"
             #endif
-
             if (std::filesystem::exists(LIB_PATH + parser.get(1).value))
             {
 
@@ -373,6 +375,18 @@ void compile(std::string file_name)
             parser.storeToken();
             parser.clearToken();
         }
+        else if (parser.get().type == "CONTINUE")
+        {
+            parser.pushType("CONTINUE");
+            parser.storeToken();
+            parser.clearToken();
+        }
+        else if (parser.get().type == "BREAK")
+        {
+            parser.pushType("BREAK");
+            parser.storeToken();
+            parser.clearToken();
+        }
         /////////////////////////////////////////////////////////////////////////////////////////////////////
         // TO (->) KEYWORD
         /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -432,6 +446,12 @@ void compile(std::string file_name)
         else if (parser.get().type == "RCURLYBR")
         {
             parser.pushType("CLOSE");
+            parser.storeToken();
+            parser.clearToken();
+        }
+        else if (parser.get().type == "ELSE")
+        {
+            parser.pushType("ELSE");
             parser.storeToken();
             parser.clearToken();
         }
@@ -588,6 +608,10 @@ void compile(std::string file_name)
                 buf += ">\n";
             }
         }
+        else if (parser.comp_tokens.at(x).type == "ELSE")
+        {
+            buf += "else ";
+        }
         else if (parser.comp_tokens.at(x).type == "Function")
         {
             int y = x+1;
@@ -620,6 +644,14 @@ void compile(std::string file_name)
             }
             isInSafeFN = 0;
             variableGotten.clear();
+        }
+        else if (parser.comp_tokens.at(x).type == "CONTINUE")
+        {
+            buf += "continue;\n";
+        }
+        else if (parser.comp_tokens.at(x).type == "BREAK")
+        {
+            buf += "break;\n";
         }
         else if (parser.comp_tokens.at(x).type == "DELETE")
         {
@@ -695,7 +727,10 @@ void compile(std::string file_name)
         }
         else if (parser.comp_tokens.at(x).type == "CLOSE")
         {
-            buf += "};\n";
+            buf += "}";
+            if (x+1 < parser.comp_tokens.size())
+                if (parser.comp_tokens.at(x+1).type != "ELSE")
+                    buf += ";\n";
         }
         else if (parser.comp_tokens.at(x).type == "DATA")
         {
@@ -750,10 +785,10 @@ int main(int argc, char* argv[])
     // Make code fast
     //std::ios::sync_with_stdio(false);
     std::string file_name;
-    
+
     if (argc != 2){
         std::cout << "Usage: " << argv[0] << " <filename>" << "\n";
-        std::cin >> file_name;
+        return 1;
     }
     else
         file_name = argv[1];
