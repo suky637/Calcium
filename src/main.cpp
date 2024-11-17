@@ -138,7 +138,7 @@ void compile(std::string file_name)
             #ifdef BUILD_MODE
             #define LIB_PATH "../lib/"
             #else
-            #define LIB_PATH "/bin/lib/"
+            #define LIB_PATH "/usr/lib/calcium/lib/"
             #endif
             if (std::filesystem::exists(LIB_PATH + parser.get(1).value))
             {
