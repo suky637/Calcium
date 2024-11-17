@@ -66,6 +66,7 @@ void compile(std::string file_name)
     lexer.add_token("FLOAT", "float");
     lexer.add_token("DOUBLE", "double");
     lexer.add_token("FUNCTION", "fn");
+    lexer.add_token("PYFUNCTION", "def");
     lexer.add_token("RETURN", "return");
     lexer.add_token("BOOLEAN", "bool");
     lexer.add_token("FLOAT", "float");
@@ -78,6 +79,7 @@ void compile(std::string file_name)
     lexer.add_token("ELSE", "else");
     lexer.add_token("AND", "and");
     lexer.add_token("OR", "or");
+    lexer.add_token("BUT", "but");
     lexer.add_token("DATA", "data");
     lexer.add_token("NAMESPACE", "namespace");
     lexer.add_token("ENDNAMESPACE", "endnamespace");
@@ -90,10 +92,15 @@ void compile(std::string file_name)
     lexer.add_token("KEEP", "keep");
     lexer.add_token("CONTINUE", "continue");
     lexer.add_token("BREAK", "break");
+    lexer.add_token("LONG", "long");
+    lexer.add_token("ELEMENT", "el");
+    lexer.add_token("ELEMENTN", "eln");
+    lexer.add_token("UNION", "union");
+    lexer.add_token("INFINITY", "inf");
+
     /////////////////////////////////////////////////////////////////////
     // PROCESSING THE LANGUAGE
     /////////////////////////////////////////////////////////////////////
-    
     
     std::ifstream file(file_name);
     std::string line;
@@ -142,7 +149,7 @@ void compile(std::string file_name)
             #endif
             if (std::filesystem::exists(LIB_PATH + parser.get(1).value))
             {
-
+                
                 // value: not-compiled
                 // real-value: compiled
 
@@ -215,20 +222,67 @@ void compile(std::string file_name)
         {
             if (parser.get(1).type == "PERIOD")
             {
-                parser.pushType("Declaration");
-                std::string args = "";
-                while (true)
+                if (parser.get(3).type == "LPARENT")
                 {
-                    if (parser.get().type != "UNKNOWN" && parser.get().type != "PERIOD")
-                        break;
-                    else
-                        args += parser.get().value;
+                    parser.pushType("Call");
+                    parser.pushValue("value", parser.get().value + "__" + parser.get(2).value);
+                    parser.advance(4);
+                    std::string args = "";
+                    int current = 0;
+                    while (parser.get().type != "RPARENT" || current != 0)
+                    {
+                        if (parser.get().type == "STR")
+                            args += "\"" + parser.get().value + "\"";
+                        else if (parser.get().type == "POINTER")
+                            args += "*";
+                        else if (parser.get().type == "REFERENCE")
+                            args += "&";
+                        else if (parser.get().type == "DIGIT")
+                            args += parser.get().value;
+                        else if (parser.get().type == "UNKNOWN")
+                            args += parser.get().value;
+                        else if (parser.get().type == "LBRAQ")
+                            args += "[";
+                        else if (parser.get().type == "RBRAQ")
+                            args += "]";
+                        else if (parser.get().type == "LPARENT")
+                        {
+                            args += "(";
+                            current++;
+                        }
+                        else if (parser.get().type == "RPARENT")
+                        {
+                            args += ")";
+                            current--;
+                        }
+                        else if (parser.get().type == "COMMA")
+                            args += ",";
+                        else if (parser.get().type == "PERIOD")
+                            args += ".";
+                        parser.advance();
+                    }
+                    parser.pushValue("args", args);
                     parser.advance();
+                    parser.storeToken();
+                    parser.clearToken();
                 }
-                parser.advance(-1);
-                parser.pushValue("value", args);
-                parser.storeToken();
-                parser.clearToken();
+                else
+                {
+                    parser.pushType("Declaration");
+                    std::string args = "";
+                    while (true)
+                    {
+                        if (parser.get().type != "UNKNOWN" && parser.get().type != "PERIOD")
+                            break;
+                        else
+                            args += parser.get().value;
+                        parser.advance();
+                    }
+                    parser.advance(-1);
+                    parser.pushValue("value", args);
+                    parser.storeToken();
+                    parser.clearToken();
+                }
             }
             else if (parser.get(1).type == "LBRAQ")
             {
@@ -291,6 +345,13 @@ void compile(std::string file_name)
             else if (parser.get(1).type == "LPARENT")
             {
                 if (parser.get(-1).type == "FUNCTION")
+                {
+                    parser.pushType("Function");
+                    parser.pushValue("value", currentNamespace + parser.get().value);
+                    parser.storeToken();
+                    parser.clearToken();
+                }
+                else if (parser.get(-1).type == "PYFUNCTION")
                 {
                     parser.pushType("Function");
                     parser.pushValue("value", currentNamespace + parser.get().value);
@@ -502,23 +563,119 @@ void compile(std::string file_name)
         {
             parser.pushType("IF");
             std::string str = "";
+            std::string before = "";
             parser.advance();
             while (parser.get().type != "LCURLYBR" && parser.get().type != "THEN")
             {
                 if (parser.get().type == "AND")
+                {
                     str += " && ";
+                    before = "";
+                }
                 else if (parser.get().type == "OR")
+                {
                     str += " || ";
+                    before = "";
+                }
+                else if (parser.get().type == "BUT")
+                {
+                    str += " && !";
+                    before = "";
+                }
                 else if (parser.get().type == "STR")
                     str += "\"" + parser.get().value + "\"";
                 else if (parser.get().type == "POINTER")
-                    str += "*";
+                    {str += "*"; before += "*";}
                 else if (parser.get().type == "REFERENCE")
-                    str += "&";
+                    {str += "&"; before += "&";}
                 else if (parser.get().type == "PERIOD" && parser.get(1).type == "UNKNOWN" && parser.get(2).type == "LPARENT")
-                    str += "__";
+                    {str += "__"; before += "__";}
+                else if (parser.get().type == "ELEMENT" || parser.get().type == "ELEMENTN")
+                {
+                    parser.advance();
+                    str = str.substr(0, str.size()-before.size());
+                    bool mustPut = false;
+                    bool negate = false;
+                    if (parser.get(-1).type == "ELEMENTN")
+                        negate = true;
+                    while (true)
+                    {
+                        /*
+                            NO UNIONS RN
+                        */
+
+                        // parsing intervals
+                        // inc    exc
+                        // [x <-> ]x
+                        // x] <-> x[
+                        bool _inc_low = false;
+                        bool _inc_high = false;
+                        std::string value_low = "";
+                        std::string value_high = "";
+                        if (parser.get().type == "LBRAQ")
+                        {
+                            _inc_low = true;
+                        }
+                        parser.advance();
+                        while (parser.get().type != "COMMA")
+                        {
+                            value_low += parser.get().value;
+                            parser.advance();
+                        }
+                        parser.advance();
+                        while (parser.get().type != "RBRAQ" && parser.get().type != "LBRAQ")
+                        {
+                            value_high += parser.get().value;
+                            parser.advance();
+                        }
+                        if (parser.get().type == "RBRAQ")
+                        {
+                            _inc_high = true;
+                        }
+                        str += "(" + before;
+                        if (value_low != "-inf")
+                        {
+                            if (!negate)
+                                str += " >";
+                            else
+                                str += " <";
+                            if (_inc_low) str += "=";
+                            str += value_low;
+                            if (value_high != "+inf")
+                            {
+                                if (!negate)
+                                    str += " && ";
+                                else
+                                    str += " || ";
+                                str +=  before;
+                            }
+                        }if (value_high != "+inf")
+                        {
+                            if (!negate)
+                                str += " <";
+                            else
+                                str += " >";
+                            if (_inc_high) str += "=";
+                            str += value_high;
+                        }
+                        
+                        //parser.advance();
+                        if (parser.get(1).value != "u")
+                        {
+                            break;
+                        }
+                        parser.advance(2);
+                        str += ") ";
+                        if (negate)
+                            str += " && ";
+                        else
+                            str += " || ";
+                        mustPut = true;
+                    }
+                    str += ")";
+                }
                 else
-                    str += parser.get().value;
+                    {str += parser.get().value; before += parser.get().value;}
                 parser.advance();
             }
             parser.advance(-1);
