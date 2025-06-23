@@ -15,19 +15,27 @@
 */
 
 //#define DEBUG_MODE 1
-//#define BUILD_MODE
+#define BUILD_MODE
+
+static std::vector<std::string> files_to_compile{};
 
 
 void compile(std::string file_name)
 {
     std::string out_fn = file_name;
+    std::string out_fn_header = file_name;
     std::string out_bak = file_name;
     int pos_filePath = file_name.find_last_of('.');
     if (pos_filePath != std::string::npos)
     {
         out_bak = file_name.substr(0, pos_filePath) + ".bak";
         out_fn = file_name.substr(0, pos_filePath) + ".c";
+        out_fn_header = file_name.substr(0, pos_filePath) + ".h";
     }
+
+    files_to_compile.push_back(out_fn);
+
+    std::filesystem::remove(out_fn_header);
 
     Lexer lexer{};
     
@@ -143,7 +151,7 @@ void compile(std::string file_name)
             parser.pushType("INCLUDE");
             
             #ifdef BUILD_MODE
-            #define LIB_PATH "../lib/"
+            #define LIB_PATH "lib/"
             #else
             #define LIB_PATH "/usr/lib/calcium/lib/"
             #endif
@@ -158,7 +166,7 @@ void compile(std::string file_name)
                 std::string extension = parser.get(1).value.substr(lastInd + 1);
                     if (extension == "ca")
                     {
-                        parser.pushValue("value", std::filesystem::absolute(LIB_PATH + parser.get(1).value.substr(0, lastInd) + ".c"));
+                        parser.pushValue("value", std::filesystem::absolute(LIB_PATH + parser.get(1).value.substr(0, lastInd) + ".h"));
                         parser.pushValue("type", "ca");
                     }
                     else
@@ -190,7 +198,7 @@ void compile(std::string file_name)
                     }
                     else if (extension == "ca")
                     {
-                        parser.pushValue("value", parser.get(1).value.substr(0, lastInd) + ".c");
+                        parser.pushValue("value", parser.get(1).value.substr(0, lastInd) + ".h");
                         parser.pushValue("type", "ca");
                     }
                     else
@@ -744,7 +752,15 @@ void compile(std::string file_name)
 
     bool isInSafeFN = false;
     std::vector<std::string> variableGotten{};
-    std::string buf = "";
+    int lastInd = file_name.find_last_of('.');
+
+    std::string buf = "#include \"" + file_name.substr(0, lastInd) + ".h\"\n";
+    std::string buf_header = "#pragma once\n";
+    std::string lastStruct = "";
+
+    bool wasInFunctionDeclaration = false;
+    bool wasInStructDeclaration = false;
+
     for (int x = 0; x < parser.comp_tokens.size(); x++)
     {
         // Safe Function
@@ -753,6 +769,9 @@ void compile(std::string file_name)
         {
             if (parser.comp_tokens.at(x).value.at("type") == "ca")
             {
+                buf_header += "#include \"";
+                buf_header += parser.comp_tokens.at(x).value.at("value");
+                buf_header += "\"\n";
                 buf += "#include \"";
                 buf += parser.comp_tokens.at(x).value.at("value");
                 buf += "\"\n";
@@ -760,6 +779,9 @@ void compile(std::string file_name)
             }
             else
             {
+                buf_header += "#include <";
+                buf_header += parser.comp_tokens.at(x).value.at("value");
+                buf_header += ">\n";
                 buf += "#include <";
                 buf += parser.comp_tokens.at(x).value.at("value");
                 buf += ">\n";
@@ -778,18 +800,27 @@ void compile(std::string file_name)
             }
             if (parser.comp_tokens.at(y+1).value.at("TYPE") == "?")
             {
+                buf_header += "void ";
                 buf += "void ";
             }
             else
             {
+                buf_header += parser.comp_tokens.at(y+1).value.at("TYPE") + " ";
                 buf += parser.comp_tokens.at(y+1).value.at("TYPE") + " ";
             }
+            buf_header += parser.comp_tokens.at(x).value.at("value");
             buf += parser.comp_tokens.at(x).value.at("value");
+            buf_header += "(";
             buf += "(";
-            if (parser.comp_tokens.at(x).value.count("arg"))
+            if (parser.comp_tokens.at(x).value.count("arg")) {
                 buf += parser.comp_tokens.at(x).value.at("arg") + " this";
-            if (parser.comp_tokens.at(x+1).type == "Declaration" && parser.comp_tokens.at(x).value.count("arg"))
+                buf_header += parser.comp_tokens.at(x).value.at("arg") + " this";
+            }
+            if (parser.comp_tokens.at(x+1).type == "Declaration" && parser.comp_tokens.at(x).value.count("arg")) {
                 buf += ", ";
+                buf_header += ", ";
+            }
+            wasInFunctionDeclaration = true;
         }
         else if (parser.comp_tokens.at(x).type == "DELETE_END")
         {
@@ -822,6 +853,7 @@ void compile(std::string file_name)
         else if (parser.comp_tokens.at(x).type == "Safe Function")
         {
             isInSafeFN = 1;
+            wasInFunctionDeclaration = 1;
             int y = x+1;
             while (parser.comp_tokens.at(y).type != "RPARENT")
             {
@@ -830,29 +862,39 @@ void compile(std::string file_name)
             if (parser.comp_tokens.at(y+1).value.at("TYPE") == "?")
             {
                 buf += "void ";
+                buf_header += "void ";
             }
             else
             {
                 buf += parser.comp_tokens.at(y+1).value.at("TYPE") + " ";
+                buf_header += parser.comp_tokens.at(y+1).value.at("TYPE") + " ";
             }
             buf += parser.comp_tokens.at(x).value.at("value");
+            buf_header += parser.comp_tokens.at(x).value.at("value");
             buf += "(";
-            if (parser.comp_tokens.at(x).value.count("arg"))
+            buf_header += "(";
+            if (parser.comp_tokens.at(x).value.count("arg")) {
                 buf += parser.comp_tokens.at(x).value.at("arg") + " this";
-            if (parser.comp_tokens.at(x+1).type == "Declaration" && parser.comp_tokens.at(x).value.count("arg"))
+                buf_header += parser.comp_tokens.at(x).value.at("arg") + " this";
+            }
+            if (parser.comp_tokens.at(x+1).type == "Declaration" && parser.comp_tokens.at(x).value.count("arg")) {
                 buf += ", ";
+                buf_header += ", ";
+            }
+
         }
         else if (parser.comp_tokens.at(x).type == "Declaration")
         {
+            std::string buffer = "";
             if (parser.comp_tokens.at(x).value.count("TYPE"))
-                buf += parser.comp_tokens.at(x).value.at("TYPE");
-            buf += parser.comp_tokens.at(x).value.at("value");
+                buffer += parser.comp_tokens.at(x).value.at("TYPE");
+            buffer += parser.comp_tokens.at(x).value.at("value");
             if (parser.comp_tokens.at(x).value.count("array"))
             {
-                buf += "[";
+                buffer += "[";
                 if (parser.comp_tokens.at(x).value.at("array") != "NULL")
-                    buf += parser.comp_tokens.at(x).value.at("array");
-                buf += "]";
+                    buffer += parser.comp_tokens.at(x).value.at("array");
+                buffer += "]";
             }
             if (parser.comp_tokens.at(x).value.count("pointer") && !parser.comp_tokens.at(x).value.count("not") && isInSafeFN)
             {
@@ -860,39 +902,61 @@ void compile(std::string file_name)
             }
             if (parser.comp_tokens.size() <= x+1)
             {
-                buf += ";\n";
+                buffer += ";\n";
             }
             else if (parser.comp_tokens.at(x+1).type == "COMMA")
             {
-                buf += ", ";
+                buffer += ", ";
             }
             else if (parser.comp_tokens.at(x+1).type == "RPARENT")
-                buf += "";
+                buffer += "";
             else if (parser.comp_tokens.at(x+1).type != "EQUAL")
             {
-                buf += ";\n";
+                buffer += ";\n";
             }
-            
+            if (wasInStructDeclaration)
+                buf_header += buffer;
+            else {
+                if (wasInFunctionDeclaration)
+                    buf_header += buffer;
+                buf += buffer;
+            }
         }
         else if (parser.comp_tokens.at(x).type == "RPARENT")
         {
+            if (wasInFunctionDeclaration)
+            {
+                buf_header += ");";
+                wasInFunctionDeclaration = false;
+            }
             buf += ")";
         }
         else if (parser.comp_tokens.at(x).type == "OPEN")
         {
-            buf += "{\n";
+            if (wasInStructDeclaration)
+                buf_header += "{\n";
+            else
+                buf += "{\n";
         }
         else if (parser.comp_tokens.at(x).type == "CLOSE")
         {
-            buf += "}";
-            if (x+1 < parser.comp_tokens.size())
-                if (parser.comp_tokens.at(x+1).type != "ELSE")
-                    buf += ";\n";
+            if (wasInStructDeclaration) {
+                buf_header += "};\ntypedef struct " + lastStruct + " " + lastStruct + ";\n";
+                wasInStructDeclaration = false;
+            } else {
+                if (x+1 < parser.comp_tokens.size())
+                    if (parser.comp_tokens.at(x+1).type != "ELSE")
+                        buf += ";\n";
+                buf += "}";
+            }
+
         }
         else if (parser.comp_tokens.at(x).type == "DATA")
         {
-            buf += "struct ";
-            buf += parser.comp_tokens.at(x).value.at("NAME");
+            buf_header += "struct ";
+            buf_header += parser.comp_tokens.at(x).value.at("NAME");
+            lastStruct = parser.comp_tokens.at(x).value.at("NAME");
+            wasInStructDeclaration = true;
         }
         else if (parser.comp_tokens.at(x).type == "Call")
         {
@@ -934,6 +998,10 @@ void compile(std::string file_name)
     std::ofstream out(out_fn);
     out << buf;
     out.close();
+
+    std::ofstream out2(out_fn_header);
+    out2 << buf_header;
+    out2.close();
 }
 
 int main(int argc, char* argv[])
@@ -941,8 +1009,8 @@ int main(int argc, char* argv[])
     
     // Make code fast
     //std::ios::sync_with_stdio(false);
-    std::string file_name;
-
+    std::string file_name = "";
+    
     if (argc != 2){
         std::cout << "Usage: " << argv[0] << " <filename>" << "\n";
         return 1;
@@ -951,5 +1019,18 @@ int main(int argc, char* argv[])
         file_name = argv[1];
     
     compile(file_name);
+
+    std::string cmd = "gcc ";
+    for (auto file : files_to_compile) {
+        cmd += file + " ";
+    }
+    int pos_filePath = file_name.find_last_of('.');
+    std::string out_file = "";
+    if (pos_filePath != std::string::npos)
+    {
+        out_file = file_name.substr(0, pos_filePath);
+    }
+    cmd += " -o " + out_file;
+    system(cmd.c_str());
     return 0;
 }
