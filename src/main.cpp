@@ -3,6 +3,7 @@
 #include <lexer.h>
 #include <parser.h>
 #include <filesystem>
+#include <chrono>
 
 /*
     Suky_Laplante
@@ -20,7 +21,7 @@
 static std::vector<std::string> files_to_compile{};
 
 
-void compile(std::string file_name)
+void compile(std::string file_name, std::string output_dir)
 {
     std::string out_fn = file_name;
     std::string out_fn_header = file_name;
@@ -91,7 +92,6 @@ void compile(std::string file_name)
     lexer.add_token("DATA", "data");
     lexer.add_token("NAMESPACE", "namespace");
     lexer.add_token("ENDNAMESPACE", "endnamespace");
-    lexer.add_token("STRUCT", "struct");
     //lexer.add_token("FOR", "for"); // TODO
     lexer.add_token("WHILE", "while");
     lexer.add_token("SAFEFN", "safefn");
@@ -141,8 +141,13 @@ void compile(std::string file_name)
     /////////////////////////////////////////////////////////////////////////////////////////////////////
 
     std::string currentNamespace = "";
+    int current_token = 0;
+    int current_line = 0;
+
     while (!parser.end())
     {
+        try {
+            current_token++;
         /////////////////////////////////////////////////////////////////////////////////////////////////////
         // IMPORTS
         /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -313,8 +318,10 @@ void compile(std::string file_name)
                         ind--;
                         continue;
                     }
-                    if (parser.get(ind).type == "EOL")
+                    if (parser.get(ind).type == "EOL") {
+                        current_line++;
                         break;
+                    }
                     if (parser.get(ind).type == "Error")
                         break;
                     if (parser.get(ind).type == "SEMI-COLON")
@@ -741,8 +748,17 @@ void compile(std::string file_name)
             parser.storeToken();
             parser.clearToken();
         }
+        else if (parser.get().type == "EOL") {
+            current_line++;
+        }
         parser.advance();
+        }
+        catch (std::out_of_range exception) {
+            std::cerr << "Parsing error at token index: " << current_token << " at line " << current_line << ".\n";
+            exit(1);
+        }
     }
+
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////
     // COMPILATION
@@ -763,6 +779,7 @@ void compile(std::string file_name)
 
     for (int x = 0; x < parser.comp_tokens.size(); x++)
     {
+        try {
         // Safe Function
         //std::cout << x << std::endl;
         if (parser.comp_tokens.at(x).type == "INCLUDE")
@@ -775,7 +792,7 @@ void compile(std::string file_name)
                 buf += "#include \"";
                 buf += parser.comp_tokens.at(x).value.at("value");
                 buf += "\"\n";
-                compile(parser.comp_tokens.at(x).value.at("realValue"));
+                compile(parser.comp_tokens.at(x).value.at("realValue"), output_dir);
             }
             else
             {
@@ -993,44 +1010,101 @@ void compile(std::string file_name)
             buf += parser.comp_tokens.at(x).value.at("CONDITION");
             buf += ")";
         }
+        } catch (std::out_of_range exception) {
+            std::cerr << "Error during compilation.\n";
+            exit(1);
+        }
     }
     
-    std::ofstream out(out_fn);
+    std::ofstream out((output_dir == "" ? "" : output_dir + "/") + out_fn);
     out << buf;
     out.close();
 
-    std::ofstream out2(out_fn_header);
+    std::ofstream out2((output_dir == "" ? "" : output_dir + "/") + out_fn_header);
     out2 << buf_header;
     out2.close();
 }
 
+enum class next_type {
+    NONE,
+    FILE,
+    OUTPUT
+};
+
 int main(int argc, char* argv[])
 {
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     
     // Make code fast
     //std::ios::sync_with_stdio(false);
     std::string file_name = "";
     
-    if (argc != 2){
-        std::cout << "Usage: " << argv[0] << " <filename>" << "\n";
+    if (argc == 1){
+        std::cout << "Error: no input do cal --help for help\n";
         return 1;
     }
-    else
-        file_name = argv[1];
-    
-    compile(file_name);
 
-    std::string cmd = "gcc ";
-    for (auto file : files_to_compile) {
-        cmd += file + " ";
+    bool only_c = false;
+    bool show_time = false;
+    std::string output_dir = "";
+
+    for (int i = 0; i < argc; i++) {
+        static next_type t = next_type::NONE;
+        if ((std::string)argv[i] == "--help" || (std::string)argv[i] == "-h") {
+            std::cout << "Calcium Terminal Manual\n";
+            std::cout << "-f | --file <file> / selects the file for compilation.\n";
+            std::cout << "-o | --output <file name> / selects the files output' directory.\n";
+            std::cout << "-t | --time / show compilation time.\n";
+            std::cout << "-c / only outputs in C.\n";
+            return 0;
+        }
+        if ((std::string)argv[i] == "-f" || (std::string)argv[i] == "--file") {
+            t = next_type::FILE;
+            continue;
+        }
+        if ((std::string)argv[i] == "-o" || (std::string)argv[i] == "--output") {
+            t = next_type::OUTPUT;
+            continue;
+        }
+        if ((std::string)argv[i] == "-c") {
+            only_c = true;
+            continue;
+        }
+        if ((std::string)argv[i] == "-t" || (std::string)argv[i] == "--time") {
+            show_time = true;
+            continue;
+        }
+        if (t == next_type::FILE) {
+            file_name = argv[i];
+            t = next_type::NONE;
+        }
+        if (t == next_type::OUTPUT) {
+            output_dir = argv[i];
+            t = next_type::NONE;
+        }
     }
-    int pos_filePath = file_name.find_last_of('.');
-    std::string out_file = "";
-    if (pos_filePath != std::string::npos)
-    {
-        out_file = file_name.substr(0, pos_filePath);
+    
+    compile(file_name, output_dir);
+
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+
+    if (show_time) {
+        std::cout << "Compilation [Ca -> C] took " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "ms.\n";
     }
-    cmd += " -o " + out_file;
-    system(cmd.c_str());
+
+    if (!only_c) {
+        std::string cmd = "gcc ";
+        for (auto file : files_to_compile) {
+            cmd += (output_dir == "" ? "" : output_dir + "/") + file + " ";
+        }
+        int pos_filePath = file_name.find_last_of('.');
+        std::string out_file = "";
+        if (pos_filePath != std::string::npos)
+        {
+            out_file = file_name.substr(0, pos_filePath);
+        }
+        cmd += " -o " + (output_dir == "" ? "" : output_dir + "/") + out_file;
+        system(cmd.c_str());
+    }
     return 0;
 }
