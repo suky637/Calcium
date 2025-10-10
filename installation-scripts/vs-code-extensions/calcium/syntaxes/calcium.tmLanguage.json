@@ -1,0 +1,105 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "Calcium",
+	"patterns": [
+		{
+			"include": "#comments"
+		},
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#char"
+		},
+		{
+			"include": "#comments"
+		},
+		{
+			"include": "#numbers"
+		},
+		{
+			"include": "#function_calls"
+		},
+		{
+			"include": "#variables"
+		}
+	],
+	"repository": {
+		"keywords": {
+			"patterns": [{
+				"name": "keyword.control.calcium",
+				"match": "\\b(if|while|el|eln|float|double|then|return|fn|continue|break|safefn|point|ref|else|namespace|endnamespace|data|delete|delete_end|keep|import|const|char|int|and|or|struct)\\b"
+			},
+			{
+				"name": "keyword.control.calcium",
+				"match": "\\?"
+			},
+			{
+				"name": "keyword.control.calcium",
+				"match": "(\\+inf|\\-inf)"
+			}
+		]
+		},
+		"strings": {
+			"name": "string.quoted.double.calcium",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.calcium",
+					"match": "\\\\."
+				}
+			]
+		},
+		"char": {
+			"name": "string.quoted.double.calcium",
+			"begin": "'",
+			"end": "'",
+			"patterns": [
+				{
+					"name": "constant.character.escape.calcium",
+					"match": "\\\\."
+				}
+			]
+		},
+		"comments": {
+			"name": "comment.calcium",
+			"begin": "#",
+			"end": "\n",
+			"patterns": [
+				{
+					"name": "constant.character.escape.calcium",
+					"match": "\\\\."
+				}
+			]
+		},
+		"numbers": {
+			"patterns": [
+				{
+					"name": "constant.numeric.calcium",
+					"match": "\\b\\d+(\\.\\d+)?\\b"
+				}
+			]
+		},
+		"function_calls": {
+			"patterns": [
+				{
+					"name": "support.function.calcium",
+					"match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(" 
+				}
+			]
+		},
+		"variables": {
+			"patterns": [
+				{
+					"name": "support.variable.calcium",
+					"match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?=\\=|\\?|\\+|\\-|\\*|\\/|\\>|\\<|\\[|\\]\\!)"
+				}
+			]
+		}
+	},
+	"scopeName": "source.ca"
+}

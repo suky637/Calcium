@@ -1,0 +1,31 @@
+{
+  "name": "calcium",
+  "displayName": "Calcium",
+  "description": "Calcium Compiled Programming Language",
+  "version": "0.0.1",
+  "publisher": "Suky Laplante",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "icon": "./ressource/logo.png",
+  "contributes": {
+    "languages": [{
+      "id": "calcium",
+      "aliases": ["Calcium", "calcium"],
+      "extensions": [".ca"],
+      "configuration": "./language-configuration.json",
+      "icon": {
+        "light": "./ressource/logo-file.png",
+        "dark": "./ressource/logo-file.png"
+      }
+    }],
+    "grammars": [{
+      "language": "calcium",
+      "scopeName": "source.ca",
+      "path": "./syntaxes/calcium.tmLanguage.json"
+    }]
+  }
+}
