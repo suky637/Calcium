@@ -16,7 +16,7 @@
 */
 
 //#define DEBUG_MODE 1
-#define BUILD_MODE
+//#define BUILD_MODE
 
 static std::vector<std::string> files_to_compile{};
 
@@ -65,6 +65,7 @@ void compile(std::string file_name, std::string output_dir)
     lexer.add_delimiter("RBRAQ", ']');
     lexer.add_delimiter("QUOTE", '"');
     lexer.add_delimiter("NULL", '?');
+    lexer.add_delimiter("GET_SIZE", '!');
 
     // reserved words
     lexer.add_token("CONST", "const");
@@ -142,7 +143,7 @@ void compile(std::string file_name, std::string output_dir)
 
     std::string currentNamespace = "";
     int current_token = 0;
-    int current_line = 0;
+    int current_line = 1;
 
     while (!parser.end())
     {
@@ -330,7 +331,11 @@ void compile(std::string file_name, std::string output_dir)
                         break;
                     if (parser.get(ind).type == "COMMA")
                         break;
-                    if (parser.get(ind).type == "POINTER")
+                    if (parser.get(ind).type == "GET_SIZE" && parser.get(ind-1).type == "UNKNOWN") {
+                        parser.pushValue("array", parser.get(ind-1).value);
+                        ind--;
+                    }
+                    else if (parser.get(ind).type == "POINTER")
                     {
                         parser.pushValue("pointer", "1");
                         args += "*";
