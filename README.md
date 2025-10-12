@@ -11,18 +11,14 @@ Before Releasing, I'd rather accumulate many features to make the update be some
 Here is some basic programs in Calcium:
 Example 1: Hello World program
 ```
-import "stdio.h"
-
 fn main() -> int {
-    printf("Hello, World!\n")
+    std.println("Hello, World!")
     return = 0
 }
 ```
 
 Example 2: two Sum program
 ```
-import "stdio.h"
-
 fn twoSum(point int nums?, int amt?, int target?) -> point int {
     2 static int ret?
     int i = 0
@@ -46,7 +42,10 @@ fn main() -> int {
     4 int input = {5, 2, 3, 4}
     point int output = twoSum(input, 4, 6)
     if output[0] != -1 {
-        printf("Index 1: %d\nIndex 2: %d\n", output[0], output[1])
+        std.print("Index 1: ")
+        std.printIln(output[0])
+        std.print("Index 2: )
+        std.printIln(output[1])
     }
     return = 0
 }
@@ -55,21 +54,19 @@ fn main() -> int {
 Weird quirks
 
 ```
-import "stdio.h"
-
 fn main() -> int {
     int x = 10
     if x el [0, 100] {
-        printf("X is between 0 and 100.\n")
+        std.println("X is between 0 and 100.")
     }
     x! int some_array?
 
     if x el ]-inf, +inf[ {
-        printf("ofc it is part of that.\n")
+        std.println("ofc it is part of that.")
     }
 
     if x el [1, 5]u[9, 15] {
-        printf("unions works !\n")
+        std.println("unions works !")
     }
 
     return = 0

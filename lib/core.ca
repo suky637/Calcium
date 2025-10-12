@@ -1,0 +1,123 @@
+import! "stdio.h"
+import! "string.h"
+import! "time.h"
+import "stdlib.h"
+
+namespace std
+    fn println(point const char text?) -> ? {
+        printf("%s\n", text)
+    }
+    fn print(point const char text?) -> ? {
+        printf("%s", text)
+    }
+    fn printF(float num?) -> ? {
+        printf("%.3f", num)
+    }
+    fn printFln(float num?) -> ? {
+        printf("%.3f\n", num)
+    }
+    fn printI(int num?) -> ? {
+        printf("%d", num)
+    }
+    fn printIln(int num?) -> ? {
+        printf("%d\n", num)
+    }
+    fn input() -> point char {
+        256 static char array?
+        fgets(array, 256, stdin)
+        int index = strcspn(array, "\n")
+        array[index] = 0
+        return = array
+    }
+    fn read(point char filename?) -> point char
+    {
+        point FILE file = fopen(filename, "r")
+
+        if !file
+        {
+            printf("IO.read(point char): Couldn't open file.\n")
+            return = NULL
+        }
+
+        fseek(file, 0, SEEK_END)
+        int length = ftell(file)
+        fseek(file, 0, SEEK_SET)
+
+        point char content = malloc(length + 1)
+        if !content
+        {
+            printf("IO.read(point char): Couldn't allocate memory.\n")
+            fclose(file)
+            delete
+            return = NULL
+        }
+
+        fread(content, 1, length, file)
+        content[length] = '\0'
+        fclose(file)
+        return = content
+    }
+    fn write(point char filename?, point char text?) -> int
+    {
+        point FILE file = fopen(filename, "w")
+        if !file 
+        {
+            printf("IO.write(point char, point char): Couldn't open file for writing.\n")
+            return = 1
+        }
+
+        int result = fputs(text, file)
+        if result == EOF
+        {
+            printf("IO.write(point char, point char): Couldn't write to file.\n")
+            return = 1
+        }
+
+        fclose(file)
+        return = 0
+    }
+    fn gettime() -> int {
+        time_t seconds?
+        seconds = time(NULL)
+        return = seconds
+    }
+    fn random(int min?, int max?) -> int {
+        static int has_set_seed = 0
+        if !has_set_seed {
+            int seed = std.gettime()
+            srand(seed)
+            has_set_seed = 1
+        }
+        return = rand() % (max - min + 1) + min
+    }
+    fn randomf(int min?, int max?) -> float {
+        static int has_set_seed = 0
+        if !has_set_seed {
+            int seed = std.gettime()
+            srand(seed)
+            has_set_seed = 1
+        }
+        return = (rand() % 100 * ((max - min + 1) + min)) / 100.f
+    }
+    fn randomiv(point int values?, int size?) -> int {
+        int total = 0
+        int i = 0
+        while i < size {
+            total = total + values[i]
+            i = i + 1
+        }
+        int random_val = std.random(0, total)
+        int return_val = 0
+        int buffer = 0
+        i = 0
+        while i < size {
+            buffer = buffer + values[i]
+            if random_val < buffer {
+                return_val = i
+                break
+            }
+            i = i + 1
+        }
+        return return_val
+    }
+endnamespace

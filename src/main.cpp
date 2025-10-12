@@ -120,6 +120,11 @@ void compile(std::string file_name, std::string output_dir)
         std::cerr << "Error opening file." << std::endl;
         exit(1);
     }
+
+    if (std::filesystem::path(file_name).filename().string() != "core.ca") {
+        lexer.read_line("import \"core.ca\"\n");
+    }
+
     while (std::getline(file, line))
     {
         lexer.read_line((line + '\n').c_str());
@@ -161,50 +166,55 @@ void compile(std::string file_name, std::string output_dir)
             #else
             #define LIB_PATH "/usr/lib/calcium/lib/"
             #endif
-            if (std::filesystem::exists(LIB_PATH + parser.get(1).value))
+            bool hasExclamation = parser.get(1).type == "GET_SIZE";
+            int offset = hasExclamation ? 1 : 0;
+            if (std::filesystem::exists(LIB_PATH + parser.get(1 + offset).value))
             {
                 
                 // value: not-compiled
                 // real-value: compiled
 
-                int lastInd = parser.get(1).value.find_last_of('.');
-                parser.pushValue("realValue", std::filesystem::absolute(LIB_PATH + parser.get(1).value).generic_string());
-                std::string extension = parser.get(1).value.substr(lastInd + 1);
+
+                int lastInd = parser.get(1+offset).value.find_last_of('.');
+                parser.pushValue("realValue", std::filesystem::absolute(LIB_PATH + parser.get(1+offset).value).generic_string());
+                parser.pushValue("filename", parser.get(offset + 1).value);
+                std::string extension = parser.get(1+offset).value.substr(lastInd + 1);
                     if (extension == "ca")
                     {
-                        parser.pushValue("value", std::filesystem::absolute(LIB_PATH + parser.get(1).value.substr(0, lastInd) + ".h"));
+                        parser.pushValue("value", std::filesystem::absolute(LIB_PATH + parser.get(1+offset).value.substr(0, lastInd) + ".h"));
                         parser.pushValue("type", "ca");
                     }
                     else
                     {
                         parser.pushValue("type", "unknown");
                     }
+                
             }
             else
             {
                 // Saying which type of lib it is
-                int lastInd = parser.get(1).value.find_last_of('.');
-                parser.pushValue("realValue", parser.get(1).value);
+                int lastInd = parser.get(offset + 1).value.find_last_of('.');
+                parser.pushValue("realValue", parser.get(offset + 1).value);
                 if (lastInd == std::string::npos)
                 {
                     parser.pushValue("type", "unknown");
                 }
                 else
                 {
-                    std::string extension = parser.get(1).value.substr(lastInd + 1);
+                    std::string extension = parser.get(offset + 1).value.substr(lastInd + 1);
                     if (extension == "h")
                     {
-                        parser.pushValue("value", parser.get(1).value);
+                        parser.pushValue("value", parser.get(offset + 1).value);
                         parser.pushValue("type", "c");
                     }
                     else if (extension == "c")
                     {
-                        parser.pushValue("value", parser.get(1).value);
+                        parser.pushValue("value", parser.get(offset + 1).value);
                         parser.pushValue("type", "c");
                     }
                     else if (extension == "ca")
                     {
-                        parser.pushValue("value", parser.get(1).value.substr(0, lastInd) + ".h");
+                        parser.pushValue("value", parser.get(offset + 1).value.substr(0, lastInd) + ".h");
                         parser.pushValue("type", "ca");
                     }
                     else
@@ -213,7 +223,13 @@ void compile(std::string file_name, std::string output_dir)
                     }
                 }
             }
-            parser.advance();
+
+            if (hasExclamation) {
+                parser.pushValue("no-header", "yes");
+            } else {
+                parser.pushValue("no-header", "no");
+            }
+            parser.advance(offset + 1);
             parser.storeToken();
             parser.clearToken();
         }
@@ -791,19 +807,28 @@ void compile(std::string file_name, std::string output_dir)
         {
             if (parser.comp_tokens.at(x).value.at("type") == "ca")
             {
-                buf_header += "#include \"";
-                buf_header += parser.comp_tokens.at(x).value.at("value");
-                buf_header += "\"\n";
+                if (!std::filesystem::exists(output_dir == "" ? "ca-libs" : output_dir + "/ca-libs")) {
+                    std::filesystem::create_directory(output_dir == "" ? "ca-libs" : output_dir + "/ca-libs");
+                }
+                if (!std::filesystem::exists((output_dir == "" ? "ca-libs/" : output_dir + "/ca-libs/") + parser.comp_tokens.at(x).value.at("filename")))
+                    std::filesystem::copy_file(parser.comp_tokens.at(x).value.at("realValue"), (output_dir == "" ? "ca-libs/" : output_dir + "/ca-libs/") + parser.comp_tokens.at(x).value.at("filename"));
+                if (parser.comp_tokens.at(x).value.at("no-header") == "no") {
+                    buf_header += "#include \"";
+                    buf_header += "ca-libs/" + parser.comp_tokens.at(x).value.at("filename").substr(0, parser.comp_tokens.at(x).value.at("filename").size() - 3) + ".h";
+                    buf_header += "\"\n";
+                }
                 buf += "#include \"";
-                buf += parser.comp_tokens.at(x).value.at("value");
+                buf += "ca-libs/" + parser.comp_tokens.at(x).value.at("filename").substr(0, parser.comp_tokens.at(x).value.at("filename").size() - 3) + ".h";
                 buf += "\"\n";
-                compile(parser.comp_tokens.at(x).value.at("realValue"), output_dir);
+                compile("ca-libs/" + parser.comp_tokens.at(x).value.at("filename"), output_dir);
             }
             else
             {
-                buf_header += "#include <";
-                buf_header += parser.comp_tokens.at(x).value.at("value");
-                buf_header += ">\n";
+                if (parser.comp_tokens.at(x).value.at("no-header") == "no") {
+                    buf_header += "#include <";
+                    buf_header += parser.comp_tokens.at(x).value.at("value");
+                    buf_header += ">\n";
+                }
                 buf += "#include <";
                 buf += parser.comp_tokens.at(x).value.at("value");
                 buf += ">\n";
@@ -1090,6 +1115,9 @@ int main(int argc, char* argv[])
     }
     
     compile(file_name, output_dir);
+    if (!std::filesystem::exists(output_dir == "" ? "ca-libs" : output_dir + "/ca-libs")) {
+        std::filesystem::create_directory(output_dir == "" ? "ca-libs" : output_dir + "/ca-libs");
+    }
 
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
@@ -1098,7 +1126,7 @@ int main(int argc, char* argv[])
     }
 
     if (!only_c) {
-        std::string cmd = "gcc ";
+        std::string cmd = "gcc -I. ";
         for (auto file : files_to_compile) {
             cmd += (output_dir == "" ? "" : output_dir + "/") + file + " ";
         }
@@ -1109,6 +1137,7 @@ int main(int argc, char* argv[])
             out_file = file_name.substr(0, pos_filePath);
         }
         cmd += " -o " + (output_dir == "" ? "" : output_dir + "/") + out_file;
+        std::cout << "Running GCC with the command: " << cmd << "\n";
         system(cmd.c_str());
     }
     return 0;
